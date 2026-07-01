@@ -19,6 +19,8 @@
   --amber: #f5b03e;
   --red: #fb7185;
   --lime: #a3e635;
+  --violet: #a78bfa;
+  --orange: #fb923c;
 
   --accent: var(--cyan);
 
@@ -79,6 +81,12 @@ textarea {
 }
 .accent-arcade {
   --accent: var(--lime);
+}
+.accent-goals {
+  --accent: var(--violet);
+}
+.accent-streaks {
+  --accent: var(--orange);
 }
 
 /* ===== layout ===== */
@@ -1003,6 +1011,23 @@ textarea {
   text-decoration: line-through;
   color: var(--faint);
 }
+.cal-chip.goal-chip {
+  border-left-color: var(--violet);
+  color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 12%, var(--panel));
+}
+.cal-cell.checked {
+  position: relative;
+}
+.cal-cell.checked::after {
+  content: '✓';
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 10px;
+  color: var(--orange);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--orange) 60%, transparent);
+}
 .cal-more {
   font-size: 10px;
   color: var(--faint);
@@ -1150,6 +1175,228 @@ textarea {
   box-shadow: none;
 }
 
+/* ===== GOALS ===== */
+.goal-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.goal-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.goal-add-row.dates {
+  flex-wrap: wrap;
+}
+.goal-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.goal-quick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.goal-len {
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.goal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.goal-item {
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 5px;
+  background: var(--panel-2);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.goal-item:hover {
+  border-color: var(--border);
+  border-left-color: var(--accent);
+}
+.goal-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.goal-title {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.goal-when {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goal-top .badge {
+  margin-left: auto;
+}
+.goal-bar {
+  height: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.goal-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  box-shadow: 0 0 12px -2px var(--accent);
+  transition: width 0.35s ease;
+}
+.goal-bar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.goal-bar-label {
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.goal-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.goal-link {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: 1px;
+  padding: 0;
+}
+.goal-link:hover {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.streak-fire {
+  color: var(--orange);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* ===== STREAKS ===== */
+.streak-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.streak-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-2);
+  padding: 12px 14px;
+  transition: border-color 0.15s;
+}
+.streak-item.done-today {
+  border-left-color: var(--accent);
+  box-shadow: 0 0 18px -10px var(--accent);
+}
+.streak-check {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  padding: 0;
+  flex: none;
+}
+.streak-item:not(.done-today) .streak-check {
+  color: var(--dim);
+}
+.streak-check:hover {
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.streak-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.streak-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.streak-title {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.streak-dots {
+  display: flex;
+  gap: 5px;
+}
+.streak-dot {
+  width: 18px;
+  text-align: center;
+  color: var(--faint);
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  font-size: 12px;
+}
+.streak-dot.on {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.streak-dot.today {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.streak-counter {
+  text-align: right;
+  flex: none;
+  min-width: 140px;
+}
+.streak-counter-num {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.streak-counter-sub {
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
 /* ===== command bar ===== */
 .cmdbar {
   grid-area: cmd;
@@ -1214,6 +1461,83 @@ kbd {
 }
 *::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ===== startup intro (boot tunnel) ===== */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #04060a;
+  opacity: 1;
+  transition: opacity 0.42s ease;
+  overflow: hidden;
+}
+.intro.phase-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.intro-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* white burst on arrival, then it fades to reveal the logo */
+.intro-burst {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 60% at 50% 50%, #f0fff4 0%, #bbf7d0 55%, #4ade80 100%);
+  opacity: 0;
+}
+.intro.phase-flash .intro-burst {
+  opacity: 0.95;
+  transition: opacity 0.1s ease-in;
+}
+.intro.phase-logo .intro-burst,
+.intro.phase-out .intro-burst {
+  opacity: 0;
+  transition: opacity 0.55s ease-out;
+}
+.intro-logo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.intro.phase-logo .intro-logo,
+.intro.phase-out .intro-logo {
+  opacity: 1;
+}
+.intro-logo .brand {
+  font-weight: 700;
+  font-size: clamp(40px, 9vw, 108px);
+  letter-spacing: clamp(6px, 2vw, 18px);
+  color: #eafff0;
+  text-shadow:
+    0 0 18px rgba(74, 222, 128, 0.7),
+    0 0 42px rgba(74, 222, 128, 0.45);
+}
+.intro-skip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  text-align: center;
+  color: var(--faint);
+  font-size: 12px;
+  letter-spacing: 3px;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+.intro.phase-flash .intro-skip,
+.intro.phase-logo .intro-skip,
+.intro.phase-out .intro-skip {
+  opacity: 0;
 }
 
 /* ===== CRT scanline overlay (toggle) ===== */

@@ -17,6 +17,21 @@ export const isoFromDate = (d: Date) =>
 
 export const todayISO = () => isoFromDate(new Date());
 
+// shift an ISO date by n days (n can be negative)
+export const addDays = (iso: string, n: number) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return isoFromDate(new Date(y, m - 1, d + n));
+};
+
+// inclusive day count of a range, e.g. same day = 1, never less than 1
+export const daysInclusive = (aISO: string, bISO: string) => {
+  const [ay, am, ad] = aISO.split('-').map(Number);
+  const [by, bm, bd] = bISO.split('-').map(Number);
+  const a = new Date(ay, am - 1, ad).getTime();
+  const b = new Date(by, bm - 1, bd).getTime();
+  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+};
+
 export const prettyDate = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, {

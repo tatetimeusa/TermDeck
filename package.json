@@ -1,7 +1,7 @@
 {
   "name": "termdeck",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "electron": "electron .",
     "app": "vite build && electron .",
-    "package": "vite build && electron-packager . TermDeck --platform=win32 --arch=x64 --out=release --overwrite --icon=build/icon.ico --prune=true --ignore=\"(^/src$|^/release$|tsconfig.*|vite.config.*)\""
+    "package": "vite build && electron-packager . TermDeck --platform=win32 --arch=x64 --out=release --overwrite --icon=build/icon.ico --prune=true --ignore=\"(^/src$|^/release$|tsconfig.*|vite.config.*|\\.zip$|\\.md$|^/build$)\""
   },
   "dependencies": {
     "react": "^18.3.1",

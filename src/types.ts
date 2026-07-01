@@ -22,6 +22,23 @@ export interface Note {
   updatedAt: number;
 }
 
-export type ModuleId = 'todo' | 'board' | 'calendar' | 'notes' | 'focus' | 'arcade';
+export interface Goal {
+  id: string;
+  title: string;
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string; // 'YYYY-MM-DD' (deadline)
+  createdAt: number;
+  checkIns: string[]; // ISO dates the daily box was checked
+}
+
+export type ModuleId =
+  | 'todo'
+  | 'board'
+  | 'calendar'
+  | 'notes'
+  | 'focus'
+  | 'arcade'
+  | 'goals'
+  | 'streaks';
 
 export type FocusMode = 'work' | 'break';

@@ -101,7 +101,7 @@ export function TodoModule() {
               </span>
             )}
             {t.due && (
-              <span className={`badge due${t.due === today ? ' today' : ''}${t.due < today && !t.done ? ' over' : ''}`}>
+              <span className={`badge due${t.due === today && !t.done ? ' today' : ''}${t.due < today && !t.done ? ' over' : ''}`}>
                 {t.due}
               </span>
             )}

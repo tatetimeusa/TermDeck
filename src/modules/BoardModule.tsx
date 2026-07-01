@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import type { Column } from '../types';
 import { Panel } from '../components/Panel';
 import { fmtDuration, todayISO } from '../util';
+import { playClick } from '../sound';
 
 const columns: { id: Column; label: string }[] = [
   { id: 'todo', label: 'TO DO' },
@@ -28,7 +29,12 @@ export function BoardModule() {
   const onDrop = (e: DragEvent, col: Column) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || dragId;
-    if (id) moveTask(id, col);
+    if (id) {
+      const task = tasks.find((t) => t.id === id);
+      const moved = !!task && task.column !== col;
+      moveTask(id, col);
+      if (moved && useStore.getState().soundEnabled) playClick();
+    }
     setDragId(null);
     setOverCol(null);
   };
@@ -56,7 +62,11 @@ export function BoardModule() {
                 e.preventDefault();
                 setOverCol(col.id);
               }}
-              onDragLeave={() => setOverCol((c) => (c === col.id ? null : c))}
+              onDragLeave={(e) => {
+                // ignore "leaves" into a child card — only clear when truly out
+                if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                setOverCol((c) => (c === col.id ? null : c));
+              }}
               onDrop={(e) => onDrop(e, col.id)}
             >
               <div className="board-col-head">

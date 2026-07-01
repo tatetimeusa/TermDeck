@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useStore } from '../store';
 import type { ModuleId } from '../types';
+import { addDays, todayISO } from '../util';
 
 const moduleAliases: Record<string, ModuleId> = {
   todo: 'todo',
@@ -13,16 +14,21 @@ const moduleAliases: Record<string, ModuleId> = {
   focus: 'focus',
   arcade: 'arcade',
   game: 'arcade',
+  goals: 'goals',
+  streaks: 'streaks',
+  streak: 'streaks',
 };
 
 export function CommandBar() {
   const ref = useRef<HTMLInputElement>(null);
+  const hintTimer = useRef<number | null>(null);
   const [val, setVal] = useState('');
   const [hint, setHint] = useState<string | null>(null);
 
   const activeModule = useStore((s) => s.activeModule);
   const addTask = useStore((s) => s.addTask);
   const addNote = useStore((s) => s.addNote);
+  const addGoal = useStore((s) => s.addGoal);
   const setModule = useStore((s) => s.setModule);
   const setActiveTask = useStore((s) => s.setActiveTask);
   const startTimer = useStore((s) => s.startTimer);
@@ -37,7 +43,8 @@ export function CommandBar() {
 
   const flash = (msg: string) => {
     setHint(msg);
-    window.setTimeout(() => setHint(null), 2000);
+    if (hintTimer.current != null) window.clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => setHint(null), 2000);
   };
 
   const run = (e: FormEvent) => {
@@ -51,15 +58,26 @@ export function CommandBar() {
       const arg = rest.join(' ').trim();
       const c = cmd.toLowerCase();
 
-      if (moduleAliases[c]) return setModule(moduleAliases[c]);
-      if (c === 'go' && moduleAliases[arg]) return setModule(moduleAliases[arg]);
+      // a bare alias switches modules; with an argument the handlers below win
+      // (so `/todo buy milk` adds a task instead of just opening TODO)
+      if (moduleAliases[c] && !arg) return setModule(moduleAliases[c]);
+      if (c === 'go' && moduleAliases[arg.toLowerCase()])
+        return setModule(moduleAliases[arg.toLowerCase()]);
       if (c === 'todo' && arg) {
         addTask(arg);
         return flash(`task added: ${arg}`);
       }
-      if (c === 'note') {
-        addNote(arg || 'untitled');
+      if (c === 'note' && arg) {
+        addNote(arg);
         return setModule('notes');
+      }
+      if (c === 'goal') {
+        if (arg) {
+          const today = todayISO();
+          addGoal(arg, today, addDays(today, 30));
+          flash(`goal created: ${arg}`);
+        }
+        return setModule('goals');
       }
       if (c === 'start') {
         setModule('focus');
@@ -68,7 +86,10 @@ export function CommandBar() {
       if (c === 'pause') return pauseTimer();
       if (c === 'reset') return resetTimer();
       if (c === 'help')
-        return flash('commands: /todo <text>, /note <title>, /focus, /start, /pause, /reset, /go <module>');
+        return flash(
+          'commands: /todo <text>, /note <title>, /goal <name>, /focus, /start, /pause, /reset, /go <module>',
+        );
+      if (moduleAliases[c]) return setModule(moduleAliases[c]); // alias + stray text
       return flash(`unknown command: /${c}  ·  try /help`);
     }
 
@@ -110,7 +131,7 @@ export function CommandBar() {
         <span className="cmd-hint">{hint}</span>
       ) : (
         <span className="cmd-help">
-          <kbd>/</kbd> jump here · <kbd>1-6</kbd> switch module
+          <kbd>/</kbd> jump here · <kbd>1-8</kbd> switch module
         </span>
       )}
     </form>

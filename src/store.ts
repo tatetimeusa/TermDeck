@@ -1,8 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Task, Note, ModuleId, Priority, FocusMode, Column } from './types';
+import type { Task, Note, Goal, ModuleId, Priority, FocusMode, Column } from './types';
+import { playSessionEnd, primeAudio } from './sound';
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+
+// Credit the active task with the real seconds elapsed since the last accrual.
+// Returns a state patch, or null if nothing to credit. Never logs time past the
+// end of the session, so a long stretch minimized still only counts up to 0:00.
+function creditActiveTask(s: Store, now: number): Partial<Store> | null {
+  if (s.focusMode !== 'work' || !s.activeTaskId || s.lastLogAt == null || s.endsAt == null) {
+    return null;
+  }
+  const until = Math.min(now, s.endsAt);
+  const gained = Math.floor((until - s.lastLogAt) / 1000);
+  if (gained <= 0) return null;
+  return {
+    tasks: s.tasks.map((t) =>
+      t.id === s.activeTaskId ? { ...t, focusSeconds: t.focusSeconds + gained } : t,
+    ),
+    lastLogAt: s.lastLogAt + gained * 1000,
+  };
+}
 
 export interface FocusSettings {
   workMin: number;
@@ -12,12 +31,15 @@ export interface FocusSettings {
 interface Store {
   tasks: Task[];
   notes: Note[];
+  goals: Goal[];
   activeModule: ModuleId;
 
   // focus / pomodoro
   focusMode: FocusMode;
   running: boolean;
   secondsLeft: number;
+  endsAt: number | null; // wall-clock ms when the running timer hits 0 (source of truth)
+  lastLogAt: number | null; // wall-clock ms of the last focus-time accrual
   activeTaskId: string | null;
   completedSessions: number;
   bankedBreakSeconds: number;
@@ -26,9 +48,13 @@ interface Store {
 
   // ui prefs
   scanlines: boolean;
+  soundEnabled: boolean;
+  introEnabled: boolean;
 
   setModule: (m: ModuleId) => void;
   toggleScanlines: () => void;
+  toggleSound: () => void;
+  toggleIntro: () => void;
 
   // tasks
   addTask: (title: string, opts?: { priority?: Priority; due?: string | null }) => string | null;
@@ -42,6 +68,12 @@ interface Store {
   addNote: (title?: string) => string;
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body'>>) => void;
   deleteNote: (id: string) => void;
+
+  // goals + streaks
+  addGoal: (title: string, startDate: string, endDate: string) => string | null;
+  updateGoal: (id: string, patch: Partial<Goal>) => void;
+  deleteGoal: (id: string) => void;
+  toggleGoalCheckIn: (id: string, dateISO: string) => void;
 
   // focus
   setActiveTask: (id: string | null) => void;
@@ -62,11 +94,14 @@ export const useStore = create<Store>()(
     (set, get) => ({
       tasks: [],
       notes: [],
+      goals: [],
       activeModule: 'todo',
 
       focusMode: 'work',
       running: false,
       secondsLeft: 25 * 60,
+      endsAt: null,
+      lastLogAt: null,
       activeTaskId: null,
       completedSessions: 0,
       bankedBreakSeconds: 0,
@@ -74,9 +109,13 @@ export const useStore = create<Store>()(
       settings: { workMin: 25, breakMin: 5 },
 
       scanlines: false,
+      soundEnabled: true,
+      introEnabled: true,
 
       setModule: (m) => set({ activeModule: m }),
       toggleScanlines: () => set((s) => ({ scanlines: !s.scanlines })),
+      toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
+      toggleIntro: () => set((s) => ({ introEnabled: !s.introEnabled })),
 
       addTask: (title, opts) => {
         const t = title.trim();
@@ -97,18 +136,23 @@ export const useStore = create<Store>()(
       },
 
       toggleTask: (id) =>
-        set((s) => ({
-          tasks: s.tasks.map((t) =>
-            t.id === id
-              ? {
-                  ...t,
-                  done: !t.done,
-                  completedAt: !t.done ? Date.now() : null,
-                  column: !t.done ? 'done' : t.column === 'done' ? 'todo' : t.column,
-                }
-              : t,
-          ),
-        })),
+        set((s) => {
+          const nowDone = s.tasks.some((t) => t.id === id && !t.done);
+          return {
+            tasks: s.tasks.map((t) =>
+              t.id === id
+                ? {
+                    ...t,
+                    done: !t.done,
+                    completedAt: !t.done ? Date.now() : null,
+                    column: !t.done ? 'done' : t.column === 'done' ? 'todo' : t.column,
+                  }
+                : t,
+            ),
+            // a finished task is no longer being focused on
+            activeTaskId: nowDone && s.activeTaskId === id ? null : s.activeTaskId,
+          };
+        }),
 
       deleteTask: (id) =>
         set((s) => ({
@@ -130,6 +174,7 @@ export const useStore = create<Store>()(
             }
             return { ...t, column, done: false, completedAt: null };
           }),
+          activeTaskId: column === 'done' && s.activeTaskId === id ? null : s.activeTaskId,
         })),
 
       addNote: (title) => {
@@ -151,22 +196,86 @@ export const useStore = create<Store>()(
 
       deleteNote: (id) => set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
 
+      addGoal: (title, startDate, endDate) => {
+        const t = title.trim();
+        if (!t) return null;
+        const goal: Goal = {
+          id: uid(),
+          title: t,
+          startDate,
+          endDate,
+          createdAt: Date.now(),
+          checkIns: [],
+        };
+        set((s) => ({ goals: [goal, ...s.goals] }));
+        return goal.id;
+      },
+
+      updateGoal: (id, patch) =>
+        set((s) => ({ goals: s.goals.map((g) => (g.id === id ? { ...g, ...patch } : g)) })),
+
+      deleteGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
+
+      toggleGoalCheckIn: (id, dateISO) =>
+        set((s) => ({
+          goals: s.goals.map((g) =>
+            g.id === id
+              ? {
+                  ...g,
+                  checkIns: g.checkIns.includes(dateISO)
+                    ? g.checkIns.filter((d) => d !== dateISO)
+                    : [...g.checkIns, dateISO],
+                }
+              : g,
+          ),
+        })),
+
       setActiveTask: (id) => set({ activeTaskId: id }),
 
-      startTimer: () => set({ running: true }),
-      pauseTimer: () => set({ running: false }),
+      startTimer: () => {
+        if (get().soundEnabled) primeAudio(); // unlock audio on this user gesture
+        set((s) => ({
+          running: true,
+          endsAt: Date.now() + s.secondsLeft * 1000,
+          lastLogAt: Date.now(),
+        }));
+      },
+
+      pauseTimer: () => {
+        const s = get();
+        const now = Date.now();
+        const credit = s.endsAt != null ? creditActiveTask(s, now) : null;
+        const remaining =
+          s.endsAt != null ? Math.max(0, Math.round((s.endsAt - now) / 1000)) : s.secondsLeft;
+        set({ ...credit, running: false, endsAt: null, lastLogAt: null, secondsLeft: remaining });
+      },
+
       resetTimer: () =>
         set((s) => ({
           running: false,
+          endsAt: null,
+          lastLogAt: null,
           secondsLeft: (s.focusMode === 'work' ? s.settings.workMin : s.settings.breakMin) * 60,
         })),
 
       skipSession: () => {
         const s = get();
         if (s.focusMode === 'work') {
-          set({ focusMode: 'break', running: false, secondsLeft: s.settings.breakMin * 60 });
+          set({
+            focusMode: 'break',
+            running: false,
+            endsAt: null,
+            lastLogAt: null,
+            secondsLeft: s.settings.breakMin * 60,
+          });
         } else {
-          set({ focusMode: 'work', running: false, secondsLeft: s.settings.workMin * 60 });
+          set({
+            focusMode: 'work',
+            running: false,
+            endsAt: null,
+            lastLogAt: null,
+            secondsLeft: s.settings.workMin * 60,
+          });
         }
       },
 
@@ -181,40 +290,40 @@ export const useStore = create<Store>()(
 
       tick: () => {
         const s = get();
-        if (!s.running) return;
-        const next = s.secondsLeft - 1;
+        if (!s.running || s.endsAt == null) return;
+        const now = Date.now();
 
-        if (next > 0) {
-          // live-log focus time against the active task while working
-          if (s.focusMode === 'work' && s.activeTaskId) {
-            set({
-              secondsLeft: next,
-              tasks: s.tasks.map((t) =>
-                t.id === s.activeTaskId ? { ...t, focusSeconds: t.focusSeconds + 1 } : t,
-              ),
-            });
-          } else {
-            set({ secondsLeft: next });
-          }
+        // credit real elapsed time to the active task (catches up after the
+        // window was minimized and the heartbeat was throttled)
+        const credit = creditActiveTask(s, now);
+        const remaining = Math.max(0, Math.round((s.endsAt - now) / 1000));
+
+        if (remaining > 0) {
+          set({ ...credit, secondsLeft: remaining });
           return;
         }
 
-        // session just completed
+        // the deadline has passed (possibly while minimized) — roll the session over
+        if (s.soundEnabled) playSessionEnd(s.focusMode);
         if (s.focusMode === 'work') {
           set({
-            tasks: s.activeTaskId
-              ? s.tasks.map((t) =>
-                  t.id === s.activeTaskId ? { ...t, focusSeconds: t.focusSeconds + 1 } : t,
-                )
-              : s.tasks,
+            ...credit,
             completedSessions: s.completedSessions + 1,
             bankedBreakSeconds: s.bankedBreakSeconds + s.settings.breakMin * 60,
             focusMode: 'break',
             running: false,
+            endsAt: null,
+            lastLogAt: null,
             secondsLeft: s.settings.breakMin * 60,
           });
         } else {
-          set({ focusMode: 'work', running: false, secondsLeft: s.settings.workMin * 60 });
+          set({
+            focusMode: 'work',
+            running: false,
+            endsAt: null,
+            lastLogAt: null,
+            secondsLeft: s.settings.workMin * 60,
+          });
         }
       },
 
@@ -228,6 +337,7 @@ export const useStore = create<Store>()(
       partialize: (s) => ({
         tasks: s.tasks,
         notes: s.notes,
+        goals: s.goals,
         activeModule: s.activeModule,
         focusMode: s.focusMode,
         secondsLeft: s.secondsLeft,
@@ -237,6 +347,8 @@ export const useStore = create<Store>()(
         bestSnake: s.bestSnake,
         settings: s.settings,
         scanlines: s.scanlines,
+        soundEnabled: s.soundEnabled,
+        introEnabled: s.introEnabled,
       }),
     },
   ),

@@ -16,6 +16,10 @@ function createWindow() {
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
+      // keep timers (the FOCUS heartbeat) running at full rate while minimized
+      backgroundThrottling: false,
+      // let the startup whoosh play on launch without a prior click
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 

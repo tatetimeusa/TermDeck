@@ -164,6 +164,11 @@ export function ArcadeModule() {
       d: { x: 1, y: 0 },
     };
     const onKey = (e: KeyboardEvent) => {
+      // don't steal keys while the user is typing (e.g. in the command bar)
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) {
+        return;
+      }
       if (e.key === ' ') {
         e.preventDefault();
         if (statusRef.current === 'playing') setStatus('paused');

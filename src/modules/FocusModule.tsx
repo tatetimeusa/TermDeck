@@ -21,7 +21,7 @@ export function FocusModule() {
   const openTasks = tasks.filter((t) => !t.done);
 
   const total = (focusMode === 'work' ? settings.workMin : settings.breakMin) * 60;
-  const pct = total > 0 ? Math.min(100, (1 - secondsLeft / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(100, Math.max(0, (1 - secondsLeft / total) * 100)) : 0;
 
   return (
     <Panel title="FOCUS" accent="focus">

@@ -6,9 +6,11 @@ import { MONTHS, WEEKDAYS, isoFromDate, prettyDate, todayISO } from '../util';
 
 export function CalendarModule() {
   const tasks = useStore((s) => s.tasks);
+  const goals = useStore((s) => s.goals);
   const addTask = useStore((s) => s.addTask);
   const toggleTask = useStore((s) => s.toggleTask);
   const deleteTask = useStore((s) => s.deleteTask);
+  const setModule = useStore((s) => s.setModule);
 
   const today = todayISO();
   const now = new Date();
@@ -64,16 +66,31 @@ export function CalendarModule() {
           <div className="cal-grid">
             {cells.map((c) => {
               const dayTasks = tasks.filter((t) => t.due === c.iso);
+              const dayGoals = goals.filter((g) => g.endDate === c.iso);
+              const checkedIn = goals.some((g) => g.checkIns.includes(c.iso));
               return (
                 <div
                   key={c.iso}
                   className={`cal-cell${c.inMonth ? '' : ' out'}${c.iso === today ? ' today' : ''}${
                     c.iso === selected ? ' selected' : ''
-                  }`}
+                  }${checkedIn ? ' checked' : ''}`}
                   onClick={() => setSelected(c.iso)}
                 >
                   <div className="cal-day">{c.day}</div>
                   <div className="cal-cell-tasks">
+                    {dayGoals.map((g) => (
+                      <div
+                        key={g.id}
+                        className="cal-chip goal-chip"
+                        title={`goal due: ${g.title}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setModule('goals');
+                        }}
+                      >
+                        ◇ {g.title}
+                      </div>
+                    ))}
                     {dayTasks.slice(0, 3).map((t) => (
                       <div
                         key={t.id}
