@@ -691,6 +691,25 @@ textarea {
   min-width: 34px;
   display: inline-block;
 }
+.set-input {
+  width: 46px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 6px;
+  text-align: center;
+  font: inherit;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.set-input:focus {
+  border-color: var(--accent);
+}
+.set .unit {
+  color: var(--dim);
+  margin-left: -2px;
+}
 .set button {
   width: 24px;
   height: 24px;

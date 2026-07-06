@@ -1,6 +1,67 @@
+import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { Panel } from '../components/Panel';
 import { fmtDuration, fmtTimer } from '../util';
+
+const MIN_MINUTES = 1;
+const MAX_MINUTES = 999;
+
+// Editable minutes field: type any value directly, or use the +/- steppers.
+// The steppers snap to the nearest multiple of `step` so they always land on
+// clean numbers (e.g. from 1 the work stepper goes to 5, never 6).
+function MinuteField({
+  label,
+  value,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  step: number;
+  onChange: (n: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+
+  // Re-sync the text field whenever the stored value changes elsewhere
+  // (stepper buttons, reset, or a completed session rolling over).
+  useEffect(() => setDraft(String(value)), [value]);
+
+  const clamp = (n: number) => Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, n));
+
+  const commit = () => {
+    const n = parseInt(draft, 10);
+    if (Number.isNaN(n)) setDraft(String(value)); // revert empty/invalid input
+    else onChange(clamp(n));
+  };
+
+  const dec = () => onChange(clamp((Math.ceil(value / step) - 1) * step));
+  const inc = () => onChange(clamp((Math.floor(value / step) + 1) * step));
+
+  return (
+    <div className="set">
+      <span>{label}</span>
+      <button onClick={dec} aria-label={`decrease ${label} minutes`}>
+        −
+      </button>
+      <input
+        className="set-input"
+        type="text"
+        inputMode="numeric"
+        value={draft}
+        aria-label={`${label} minutes`}
+        onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+      />
+      <span className="unit">m</span>
+      <button onClick={inc} aria-label={`increase ${label} minutes`}>
+        +
+      </button>
+    </div>
+  );
+}
 
 export function FocusModule() {
   const focusMode = useStore((s) => s.focusMode);
@@ -68,18 +129,18 @@ export function FocusModule() {
         </div>
 
         <div className="focus-settings">
-          <div className="set">
-            <span>work</span>
-            <button onClick={() => setSettings({ workMin: Math.max(1, settings.workMin - 5) })}>−</button>
-            <b>{settings.workMin}m</b>
-            <button onClick={() => setSettings({ workMin: settings.workMin + 5 })}>+</button>
-          </div>
-          <div className="set">
-            <span>break</span>
-            <button onClick={() => setSettings({ breakMin: Math.max(1, settings.breakMin - 1) })}>−</button>
-            <b>{settings.breakMin}m</b>
-            <button onClick={() => setSettings({ breakMin: settings.breakMin + 1 })}>+</button>
-          </div>
+          <MinuteField
+            label="work"
+            value={settings.workMin}
+            step={5}
+            onChange={(n) => setSettings({ workMin: n })}
+          />
+          <MinuteField
+            label="break"
+            value={settings.breakMin}
+            step={1}
+            onChange={(n) => setSettings({ breakMin: n })}
+          />
           <div className="set stat">
             sessions done <b>{completedSessions}</b>
           </div>
