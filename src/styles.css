@@ -9,18 +9,18 @@
   --border: #1b2a40;
   --border-soft: #142031;
 
-  --text: #cdd9e8;
-  --dim: #6c7f96;
-  --faint: #44566b;
+  --text: #dbe6f5;
+  --dim: #8294ab;
+  --faint: #52657d;
 
-  --cyan: #2dd4ee;
-  --magenta: #e879f9;
-  --green: #4ade80;
-  --amber: #f5b03e;
-  --red: #fb7185;
-  --lime: #a3e635;
-  --violet: #a78bfa;
-  --orange: #fb923c;
+  --cyan: #3ee5ff;
+  --magenta: #f18dff;
+  --green: #5cf593;
+  --amber: #ffc052;
+  --red: #ff8797;
+  --lime: #b8f24a;
+  --violet: #bda6ff;
+  --orange: #ffa652;
 
   --accent: var(--cyan);
 
