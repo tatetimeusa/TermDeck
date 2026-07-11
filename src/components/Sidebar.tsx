@@ -12,6 +12,7 @@ const items: { id: ModuleId; key: string; label: string; soon?: boolean }[] = [
   { id: 'arcade', key: '6', label: 'ARCADE' },
   { id: 'goals', key: '7', label: 'GOALS' },
   { id: 'streaks', key: '8', label: 'STREAKS' },
+  { id: 'reminders', key: '9', label: 'REMINDERS' },
 ];
 
 export function Sidebar() {

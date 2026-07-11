@@ -31,6 +31,35 @@ export interface Goal {
   checkIns: string[]; // ISO dates the daily box was checked
 }
 
+export type RecurUnit = 'minutes' | 'hours' | 'days';
+
+export type Recurrence =
+  | { kind: 'none' }
+  | { kind: 'daily' }
+  | { kind: 'weekly' }
+  | { kind: 'monthly' }
+  | { kind: 'custom'; every: number; unit: RecurUnit };
+
+export interface Reminder {
+  id: string;
+  text: string;
+  taskId: string | null; // optional link to a Task
+  nextAt: number; // epoch ms of the next scheduled fire (wall-clock anchored, like endsAt)
+  recurrence: Recurrence;
+  snoozedUntil: number | null; // epoch ms; overrides nextAt as the effective fire time
+  done: boolean; // one-shot reminders after dismissal (kept as history)
+  createdAt: number;
+}
+
+// a reminder that has gone off and is waiting on the popup — transient, never persisted,
+// so an undismissed popup at quit re-fires as "missed" on the next launch
+export interface FiredReminder {
+  reminderId: string;
+  scheduledFor: number; // the effective time it was supposed to fire
+  firedAt: number;
+  missed: boolean; // fired more than 60s late (e.g. the app was closed)
+}
+
 export type ModuleId =
   | 'todo'
   | 'board'
@@ -39,6 +68,7 @@ export type ModuleId =
   | 'focus'
   | 'arcade'
   | 'goals'
-  | 'streaks';
+  | 'streaks'
+  | 'reminders';
 
 export type FocusMode = 'work' | 'break';

@@ -1,7 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Task, Note, Goal, ModuleId, Priority, FocusMode, Column } from './types';
-import { playSessionEnd, primeAudio } from './sound';
+import type {
+  Task,
+  Note,
+  Goal,
+  Reminder,
+  FiredReminder,
+  Recurrence,
+  ModuleId,
+  Priority,
+  FocusMode,
+  Column,
+} from './types';
+import { playReminder, playSessionEnd, primeAudio } from './sound';
+import { advanceToFuture, effectiveAt } from './reminders';
+import { ensureNotifyPermission, notifyReminder } from './notify';
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
@@ -32,6 +45,8 @@ interface Store {
   tasks: Task[];
   notes: Note[];
   goals: Goal[];
+  reminders: Reminder[];
+  firing: FiredReminder[]; // reminders currently showing a popup — transient, not persisted
   activeModule: ModuleId;
 
   // focus / pomodoro
@@ -75,6 +90,18 @@ interface Store {
   deleteGoal: (id: string) => void;
   toggleGoalCheckIn: (id: string, dateISO: string) => void;
 
+  // reminders
+  addReminder: (
+    text: string,
+    whenMs: number,
+    opts?: { taskId?: string | null; recurrence?: Recurrence },
+  ) => string | null;
+  updateReminder: (id: string, patch: Partial<Omit<Reminder, 'id' | 'createdAt'>>) => void;
+  deleteReminder: (id: string) => void;
+  snoozeReminder: (id: string, minutes: number) => void;
+  dismissFired: (id: string) => void;
+  checkReminders: () => void;
+
   // focus
   setActiveTask: (id: string | null) => void;
   startTimer: () => void;
@@ -95,6 +122,8 @@ export const useStore = create<Store>()(
       tasks: [],
       notes: [],
       goals: [],
+      reminders: [],
+      firing: [],
       activeModule: 'todo',
 
       focusMode: 'work',
@@ -158,6 +187,8 @@ export const useStore = create<Store>()(
         set((s) => ({
           tasks: s.tasks.filter((t) => t.id !== id),
           activeTaskId: s.activeTaskId === id ? null : s.activeTaskId,
+          // unlink any reminder pointing at the deleted task
+          reminders: s.reminders.map((r) => (r.taskId === id ? { ...r, taskId: null } : r)),
         })),
 
       updateTask: (id, patch) =>
@@ -229,6 +260,84 @@ export const useStore = create<Store>()(
               : g,
           ),
         })),
+
+      addReminder: (text, whenMs, opts) => {
+        const t = text.trim();
+        if (!t) return null;
+        ensureNotifyPermission(); // creation is a user gesture — the right moment to ask
+        const reminder: Reminder = {
+          id: uid(),
+          text: t,
+          taskId: opts?.taskId ?? null,
+          nextAt: whenMs,
+          recurrence: opts?.recurrence ?? { kind: 'none' },
+          snoozedUntil: null,
+          done: false,
+          createdAt: Date.now(),
+        };
+        set((s) => ({ reminders: [reminder, ...s.reminders] }));
+        return reminder.id;
+      },
+
+      updateReminder: (id, patch) =>
+        set((s) => ({
+          reminders: s.reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+        })),
+
+      deleteReminder: (id) =>
+        set((s) => ({
+          reminders: s.reminders.filter((r) => r.id !== id),
+          firing: s.firing.filter((f) => f.reminderId !== id),
+        })),
+
+      snoozeReminder: (id, minutes) =>
+        set((s) => ({
+          reminders: s.reminders.map((r) =>
+            r.id === id ? { ...r, snoozedUntil: Date.now() + minutes * 60_000 } : r,
+          ),
+          firing: s.firing.filter((f) => f.reminderId !== id),
+        })),
+
+      dismissFired: (id) =>
+        set((s) => ({
+          firing: s.firing.filter((f) => f.reminderId !== id),
+          reminders: s.reminders.map((r) => {
+            if (r.id !== id) return r;
+            // one-shots are kept as history; repeats jump to the next future
+            // occurrence measured from the scheduled time (never drifts, and a
+            // fast interval can't pile up popups after a long time closed)
+            if (r.recurrence.kind === 'none') return { ...r, done: true, snoozedUntil: null };
+            return {
+              ...r,
+              nextAt: advanceToFuture(r.recurrence, r.nextAt, Date.now()),
+              snoozedUntil: null,
+            };
+          }),
+        })),
+
+      checkReminders: () => {
+        const s = get();
+        const now = Date.now();
+        const due = s.reminders.filter(
+          (r) =>
+            !r.done &&
+            !s.firing.some((f) => f.reminderId === r.id) &&
+            effectiveAt(r) <= now,
+        );
+        if (due.length === 0) return;
+        const fired: FiredReminder[] = due.map((r) => ({
+          reminderId: r.id,
+          scheduledFor: effectiveAt(r),
+          firedAt: now,
+          missed: now - effectiveAt(r) > 60_000,
+        }));
+        set({ firing: [...s.firing, ...fired] });
+        if (s.soundEnabled) playReminder(); // once per batch, not per reminder
+        for (const f of fired) {
+          const r = due.find((d) => d.id === f.reminderId)!;
+          notifyReminder(r.text, { missed: f.missed, scheduledFor: f.scheduledFor });
+        }
+      },
 
       setActiveTask: (id) => set({ activeTaskId: id }),
 
@@ -338,6 +447,7 @@ export const useStore = create<Store>()(
         tasks: s.tasks,
         notes: s.notes,
         goals: s.goals,
+        reminders: s.reminders, // NOT firing — undismissed popups re-fire as missed on relaunch
         activeModule: s.activeModule,
         focusMode: s.focusMode,
         secondsLeft: s.secondsLeft,

@@ -36,6 +36,10 @@ function createWindow() {
   });
 }
 
+// gives the app a stable identity so renderer Notifications become real
+// Windows toasts (and don't show up as a generic "electron.app" sender)
+if (process.platform === 'win32') app.setAppUserModelId('com.termdeck.app');
+
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => {

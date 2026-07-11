@@ -13,6 +13,8 @@ import { CalendarModule } from './modules/CalendarModule';
 import { ArcadeModule } from './modules/ArcadeModule';
 import { GoalsModule } from './modules/GoalsModule';
 import { StreaksModule } from './modules/StreaksModule';
+import { RemindersModule } from './modules/RemindersModule';
+import { ReminderPopup } from './components/ReminderPopup';
 import type { ModuleId } from './types';
 
 const moduleKeys: Record<string, ModuleId> = {
@@ -24,32 +26,40 @@ const moduleKeys: Record<string, ModuleId> = {
   '6': 'arcade',
   '7': 'goals',
   '8': 'streaks',
+  '9': 'reminders',
 };
 
 export default function App() {
   const activeModule = useStore((s) => s.activeModule);
   const setModule = useStore((s) => s.setModule);
   const tick = useStore((s) => s.tick);
+  const checkReminders = useStore((s) => s.checkReminders);
   const scanlines = useStore((s) => s.scanlines);
   // play the boot intro on launch (read once at mount so toggling it mid-session
   // never disturbs the running app)
   const [introActive, setIntroActive] = useState(() => useStore.getState().introEnabled);
 
-  // 1-second heartbeat that drives the focus timer
+  // 1-second heartbeat that drives the focus timer and the reminder checks
   useEffect(() => {
-    const id = setInterval(() => tick(), 1000);
+    const beat = () => {
+      tick();
+      checkReminders();
+    };
+    // run once right away so reminders missed while the app was closed pop
+    // immediately at launch instead of waiting for the first interval
+    beat();
+    const id = setInterval(beat, 1000);
     // The heartbeat gets throttled while the window is minimized/hidden, so
     // re-sync the moment it comes back to the foreground (the timer is anchored
     // to a real end-time, so this snaps it to the correct value instantly).
-    const resync = () => tick();
-    window.addEventListener('focus', resync);
-    document.addEventListener('visibilitychange', resync);
+    window.addEventListener('focus', beat);
+    document.addEventListener('visibilitychange', beat);
     return () => {
       clearInterval(id);
-      window.removeEventListener('focus', resync);
-      document.removeEventListener('visibilitychange', resync);
+      window.removeEventListener('focus', beat);
+      document.removeEventListener('visibilitychange', beat);
     };
-  }, [tick]);
+  }, [tick, checkReminders]);
 
   // soft UI tick on any interactive click (gated by the SND toggle). Capture
   // phase so it still fires when a handler calls stopPropagation (e.g. cal chips).
@@ -110,8 +120,10 @@ export default function App() {
         {activeModule === 'arcade' && <ArcadeModule />}
         {activeModule === 'goals' && <GoalsModule />}
         {activeModule === 'streaks' && <StreaksModule />}
+        {activeModule === 'reminders' && <RemindersModule />}
       </main>
       <CommandBar />
+      <ReminderPopup />
     </div>
   );
 }

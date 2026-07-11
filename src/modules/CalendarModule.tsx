@@ -3,13 +3,16 @@ import type { FormEvent } from 'react';
 import { useStore } from '../store';
 import { Panel } from '../components/Panel';
 import { MONTHS, WEEKDAYS, isoFromDate, prettyDate, todayISO } from '../util';
+import { effectiveAt, fmtClockTime } from '../reminders';
 
 export function CalendarModule() {
   const tasks = useStore((s) => s.tasks);
   const goals = useStore((s) => s.goals);
+  const reminders = useStore((s) => s.reminders);
   const addTask = useStore((s) => s.addTask);
   const toggleTask = useStore((s) => s.toggleTask);
   const deleteTask = useStore((s) => s.deleteTask);
+  const deleteReminder = useStore((s) => s.deleteReminder);
   const setModule = useStore((s) => s.setModule);
 
   const today = todayISO();
@@ -32,7 +35,13 @@ export function CalendarModule() {
     setSelected(today);
   };
 
+  // recurring reminders show on their NEXT fire date only (a daily reminder
+  // painted into every cell would drown the grid)
+  const remindersOn = (iso: string) =>
+    reminders.filter((r) => !r.done && isoFromDate(new Date(effectiveAt(r))) === iso);
+
   const selTasks = tasks.filter((t) => t.due === selected);
+  const selReminders = remindersOn(selected);
   const addOnDay = (e: FormEvent) => {
     e.preventDefault();
     if (addTask(title, { due: selected })) setTitle('');
@@ -67,6 +76,7 @@ export function CalendarModule() {
             {cells.map((c) => {
               const dayTasks = tasks.filter((t) => t.due === c.iso);
               const dayGoals = goals.filter((g) => g.endDate === c.iso);
+              const dayRems = remindersOn(c.iso);
               const checkedIn = goals.some((g) => g.checkIns.includes(c.iso));
               return (
                 <div
@@ -78,6 +88,19 @@ export function CalendarModule() {
                 >
                   <div className="cal-day">{c.day}</div>
                   <div className="cal-cell-tasks">
+                    {dayRems.map((r) => (
+                      <div
+                        key={r.id}
+                        className="cal-chip reminder-chip"
+                        title={`reminder ${fmtClockTime(effectiveAt(r))}: ${r.text}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setModule('reminders');
+                        }}
+                      >
+                        ◷ {fmtClockTime(effectiveAt(r))} {r.text}
+                      </div>
+                    ))}
                     {dayGoals.map((g) => (
                       <div
                         key={g.id}
@@ -124,6 +147,19 @@ export function CalendarModule() {
               [ ADD ]
             </button>
           </form>
+          {selReminders.length > 0 && (
+            <ul className="cal-detail-list cal-detail-rems">
+              {selReminders.map((r) => (
+                <li key={r.id} className="cal-detail-item">
+                  <span className="cal-rem-time">◷ {fmtClockTime(effectiveAt(r))}</span>
+                  <span className="cal-detail-title">{r.text}</span>
+                  <button className="row-btn del" onClick={() => deleteReminder(r.id)}>
+                    del
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <ul className="cal-detail-list">
             {selTasks.length === 0 && <li className="empty">nothing due this day.</li>}
             {selTasks.map((t) => (

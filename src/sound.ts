@@ -93,6 +93,19 @@ export function playWhoosh(): void {
   osc.stop(bt + 0.4);
 }
 
+// Played when a reminder goes off: a rising sine/triangle triad, softer and
+// higher than the session-end chime so the two are easy to tell apart.
+// NOTE: in a dev browser this may be silent if no user gesture has primed the
+// audio engine yet; the packaged app allows autoplay so it always sounds there.
+export function playReminder(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const t = ac.currentTime + 0.02;
+  blip(ac, 880, t, 0.1, 'sine', 0.2);
+  blip(ac, 1175, t + 0.11, 0.1, 'sine', 0.2);
+  blip(ac, 1568, t + 0.22, 0.28, 'triangle', 0.22);
+}
+
 // Played when a timer reaches 0. Work sessions get a bright rising three-note
 // chime ("done!"); breaks get two lower notes ("back to work").
 export function playSessionEnd(mode: 'work' | 'break'): void {
