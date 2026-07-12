@@ -1,0 +1,52 @@
+# Builds the macOS app on GitHub's free mac runners.
+# Needed because the Windows dev machine can't create the symlinks a .app bundle requires.
+# Runs on every v* tag (and attaches the zip to that release) or manually via workflow_dispatch.
+name: mac-build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    permissions:
+      contents: write # attach the zip to the release on tag builds
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build icon.icns from the committed 1024px PNG
+        run: |
+          mkdir -p build/icon.iconset
+          for s in 16 32 64 128 256 512; do
+            sips -z $s $s build/icon-1024.png --out build/icon.iconset/icon_${s}x${s}.png
+            sips -z $((s*2)) $((s*2)) build/icon-1024.png --out build/icon.iconset/icon_${s}x${s}@2x.png
+          done
+          iconutil -c icns build/icon.iconset -o build/icon.icns
+
+      - run: npm run package:mac
+
+      - name: Ad-hoc sign (Apple Silicon refuses unsigned binaries)
+        run: codesign --force --deep -s - "release/TermDeck-darwin-universal/TermDeck.app"
+
+      - name: Zip preserving symlinks and exec bits
+        run: ditto -c -k --keepParent "release/TermDeck-darwin-universal/TermDeck.app" TermDeck-mac-universal.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TermDeck-mac-universal
+          path: TermDeck-mac-universal.zip
+
+      - name: Attach to the release on tag builds
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: TermDeck-mac-universal.zip

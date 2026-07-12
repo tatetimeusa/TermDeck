@@ -1,4 +1,4 @@
-param([string]$emit = "")
+param([string]$emit = "", [switch]$png1024)
 
 Add-Type -AssemblyName System.Drawing
 
@@ -33,13 +33,18 @@ function New-Tile([int]$size, [string]$variant) {
 
   $glowText = {
     param($txt, $font, $x, $y, $col, $sf, $rad)
-    $glow = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(60, $col.R, $col.G, $col.B))
-    foreach ($o in @(@(-$rad, 0), @($rad, 0), @(0, -$rad), @(0, $rad), @(-$rad, -$rad), @($rad, $rad), @(-$rad, $rad), @($rad, -$rad))) {
-      $g.DrawString($txt, $font, $glow, [single]($x + $o[0]), [single]($y + $o[1]), $sf)
+    # three shrinking rings so big renders (1024) read as a blur, not ghost copies
+    foreach ($f in @(1.0, 0.66, 0.33)) {
+      $r = [single]($rad * $f)
+      $glow = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(28, $col.R, $col.G, $col.B))
+      foreach ($o in @(@(-$r, 0), @($r, 0), @(0, -$r), @(0, $r), @(-$r, -$r), @($r, $r), @(-$r, $r), @($r, -$r))) {
+        $g.DrawString($txt, $font, $glow, [single]($x + $o[0]), [single]($y + $o[1]), $sf)
+      }
+      $glow.Dispose()
     }
     $solid = New-Object System.Drawing.SolidBrush $col
     $g.DrawString($txt, $font, $solid, [single]$x, [single]$y, $sf)
-    $glow.Dispose(); $solid.Dispose()
+    $solid.Dispose()
   }
   $glowRect = {
     param($x, $y, $w, $h, $rad, $col)
@@ -140,7 +145,14 @@ function New-Tile([int]$size, [string]$variant) {
 $buildDir = "C:\Users\micha\TermDeck\build"
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 
-if ($emit -ne "") {
+# -emit A -png1024 → one big PNG; the mac build turns it into icon.icns on a macOS runner
+if ($png1024 -and $emit -ne "") {
+  $b = New-Tile 1024 $emit
+  $pngPath = "$buildDir\icon-1024.png"
+  $b.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png); $b.Dispose()
+  "1024px PNG written for variant ${emit}: $pngPath"
+}
+elseif ($emit -ne "") {
   $sizes = @(256, 128, 64, 48, 32, 16)
   $pngs = @()
   foreach ($sz in $sizes) {

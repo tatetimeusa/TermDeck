@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useStore } from '../store';
+import { forceSync, signOut } from '../sync';
 import type { ModuleId } from '../types';
 import { addDays, todayISO } from '../util';
 
@@ -85,9 +86,21 @@ export function CommandBar() {
       }
       if (c === 'pause') return pauseTimer();
       if (c === 'reset') return resetTimer();
+      if (c === 'login' || c === 'account') {
+        window.dispatchEvent(new CustomEvent('termdeck:open-account'));
+        return;
+      }
+      if (c === 'logout') {
+        void signOut();
+        return flash('signed out — data stays on this computer');
+      }
+      if (c === 'sync') {
+        forceSync();
+        return flash('syncing…');
+      }
       if (c === 'help')
         return flash(
-          'commands: /todo <text>, /note <title>, /goal <name>, /focus, /start, /pause, /reset, /go <module>',
+          'commands: /todo <text>, /note <title>, /goal <name>, /focus, /start, /pause, /reset, /go <module>, /login, /logout, /sync',
         );
       if (moduleAliases[c]) return setModule(moduleAliases[c]); // alias + stray text
       return flash(`unknown command: /${c}  ·  try /help`);

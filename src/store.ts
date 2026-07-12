@@ -41,6 +41,24 @@ export interface FocusSettings {
   breakMin: number;
 }
 
+export type SyncStatus = 'off' | 'syncing' | 'synced' | 'error' | 'offline';
+
+// exactly what lives in the cloud blob — user data + cross-machine prefs;
+// never transient timer/UI state (a ticking pomodoro must not teleport between machines)
+export interface CloudData {
+  tasks: Task[];
+  notes: Note[];
+  goals: Goal[];
+  reminders: Reminder[];
+  completedSessions: number;
+  bankedBreakSeconds: number;
+  bestSnake: number;
+  settings: FocusSettings;
+  scanlines: boolean;
+  soundEnabled: boolean;
+  introEnabled: boolean;
+}
+
 interface Store {
   tasks: Task[];
   notes: Note[];
@@ -65,6 +83,16 @@ interface Store {
   scanlines: boolean;
   soundEnabled: boolean;
   introEnabled: boolean;
+
+  // account + sync — authEmail/syncStatus are transient; lastSyncedAt persists
+  // per machine (the server updated_at of the last blob this machine saw)
+  authEmail: string | null;
+  syncStatus: SyncStatus;
+  lastSyncedAt: string | null;
+  setAuth: (email: string | null) => void;
+  setSyncStatus: (status: SyncStatus) => void;
+  setLastSyncedAt: (iso: string | null) => void;
+  applyCloudData: (blob: CloudData) => void;
 
   setModule: (m: ModuleId) => void;
   toggleScanlines: () => void;
@@ -140,6 +168,25 @@ export const useStore = create<Store>()(
       scanlines: false,
       soundEnabled: true,
       introEnabled: true,
+
+      authEmail: null,
+      syncStatus: 'off',
+      lastSyncedAt: null,
+
+      setAuth: (email) => set({ authEmail: email }),
+      setSyncStatus: (status) => set({ syncStatus: status }),
+      setLastSyncedAt: (iso) => set({ lastSyncedAt: iso }),
+
+      applyCloudData: (blob) =>
+        set((s) => ({
+          ...blob,
+          // the cloud copy may have deleted what this machine was pointing at
+          activeTaskId:
+            s.activeTaskId && blob.tasks.some((t) => t.id === s.activeTaskId)
+              ? s.activeTaskId
+              : null,
+          firing: s.firing.filter((f) => blob.reminders.some((r) => r.id === f.reminderId)),
+        })),
 
       setModule: (m) => set({ activeModule: m }),
       toggleScanlines: () => set((s) => ({ scanlines: !s.scanlines })),
@@ -459,7 +506,11 @@ export const useStore = create<Store>()(
         scanlines: s.scanlines,
         soundEnabled: s.soundEnabled,
         introEnabled: s.introEnabled,
+        lastSyncedAt: s.lastSyncedAt,
       }),
+      // pre-0.3.0 blobs have no version (zustand treats them as 0) — same shape, pass through
+      version: 1,
+      migrate: (persisted) => persisted as Store,
     },
   ),
 );

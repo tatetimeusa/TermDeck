@@ -1,12 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { fmtClock, fmtTimer } from '../util';
+import { AccountPanel } from './AccountPanel';
+
+const SYNC_LABEL: Record<string, string> = {
+  off: 'SYNC:OFF',
+  syncing: 'SYNC:…',
+  synced: 'SYNC:✓',
+  error: 'SYNC:ERR',
+  offline: 'OFFLINE',
+};
 
 export function TopBar() {
   const [now, setNow] = useState(new Date());
+  const [accountOpen, setAccountOpen] = useState(false);
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const open = () => setAccountOpen(true);
+    window.addEventListener('termdeck:open-account', open);
+    return () => window.removeEventListener('termdeck:open-account', open);
   }, []);
 
   const running = useStore((s) => s.running);
@@ -18,6 +34,7 @@ export function TopBar() {
   const toggleSound = useStore((s) => s.toggleSound);
   const introEnabled = useStore((s) => s.introEnabled);
   const toggleIntro = useStore((s) => s.toggleIntro);
+  const syncStatus = useStore((s) => s.syncStatus);
 
   return (
     <header className="topbar">
@@ -37,8 +54,16 @@ export function TopBar() {
         <button className="ghost-btn" onClick={toggleIntro} title="Toggle startup intro">
           {introEnabled ? 'INTRO:ON' : 'INTRO:OFF'}
         </button>
+        <button
+          className={`ghost-btn sync-badge sync-${syncStatus}`}
+          onClick={() => setAccountOpen(true)}
+          title="Account & sync"
+        >
+          {SYNC_LABEL[syncStatus]}
+        </button>
         <span className="clock">{fmtClock(now)}</span>
       </div>
+      {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}
     </header>
   );
 }

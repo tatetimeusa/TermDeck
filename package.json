@@ -10,9 +10,11 @@
     "preview": "vite preview",
     "electron": "electron .",
     "app": "vite build && electron .",
-    "package": "vite build && electron-packager . TermDeck --platform=win32 --arch=x64 --out=release --overwrite --icon=build/icon.ico --prune=true --ignore=\"(^/src$|^/release$|tsconfig.*|vite.config.*|\\.zip$|\\.md$|^/build$)\""
+    "package": "vite build && electron-packager . TermDeck --platform=win32 --arch=x64 --out=release --overwrite --icon=build/icon.ico --prune=true --ignore=\"(^/src$|^/release$|tsconfig.*|vite.config.*|\\.zip$|\\.md$|^/build$|^/\\.env$|^/\\.github$|make-icon\\.ps1)\"",
+    "package:mac": "vite build && electron-packager . TermDeck --platform=darwin --arch=universal --out=release --overwrite --icon=build/icon.icns --app-bundle-id=com.tatetime.termdeck --prune=true --ignore=\"(^/src$|^/release$|tsconfig.*|vite.config.*|\\.zip$|\\.md$|^/build$|^/\\.env$|^/\\.github$|make-icon\\.ps1)\""
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.5"
