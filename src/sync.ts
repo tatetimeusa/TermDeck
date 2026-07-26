@@ -142,7 +142,17 @@ export function initSync(): void {
 
   supabase.auth.onAuthStateChange((event, session) => {
     // defer supabase calls out of the auth callback (it runs under auth-js's lock)
-    if (session?.user && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+    //
+    // USER_UPDATED carries a full session: it's how a finished password recovery
+    // turns into a real sign-in. PASSWORD_RECOVERY is deliberately NOT handled —
+    // verifying a recovery code creates a session, but the sync engine must stay
+    // dormant until the new password is actually set, so a half-finished reset
+    // can't pull the cloud deck over this machine's and the account panel keeps
+    // showing the reset form.
+    if (
+      session?.user &&
+      (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED')
+    ) {
       const isNewUser = userId !== session.user.id;
       userId = session.user.id;
       useStore.getState().setAuth(session.user.email ?? '(no email)');
@@ -173,21 +183,129 @@ export function initSync(): void {
 
 // ---- called by the account UI ----
 
+// some of these calls have something friendly to say on success, which the
+// plain `string | null` error convention below can't express
+export type AuthResult = { ok: boolean; message?: string };
+
 export const syncConfigured = supabase !== null;
 
-export async function signIn(email: string, password: string): Promise<string | null> {
-  if (!supabase) return 'sync is not configured in this build';
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return error ? error.message : null; // success flows through onAuthStateChange
+// Supabase's own minimum. The panel checks this before spending a round trip.
+export const MIN_PASSWORD = 6;
+
+const NOT_CONFIGURED = 'sync is not configured in this build';
+const UNREACHABLE = 'could not reach the server — try again';
+
+// a recovery code has been verified but the new password isn't set yet
+let recoveryPending = false;
+
+type AuthErrorLike = { code?: string; message: string; status?: number; reasons?: string[] };
+
+// Supabase's raw messages swing between terse and jargony; say it plainly instead.
+function friendlyAuthError(e: AuthErrorLike): string {
+  if (!navigator.onLine || e.status === 0) return "you're offline — reconnect and try again";
+  switch (e.code) {
+    case 'otp_expired':
+      // GoTrue answers the same way for a typo and for a stale code
+      return 'that code is wrong or expired — request a new one';
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit': {
+      const secs = /after (\d+) seconds?/.exec(e.message)?.[1];
+      return secs
+        ? `too many attempts — wait ${secs}s and try again`
+        : 'too many attempts — wait a minute and try again';
+    }
+    case 'same_password':
+      return 'new password must be different from your old one';
+    case 'weak_password':
+      return e.reasons?.length
+        ? `password is too weak: ${e.reasons.join(', ')}`
+        : `password is too weak — use at least ${MIN_PASSWORD} characters`;
+    case 'invalid_credentials':
+      return 'wrong email or password';
+    case 'user_not_found':
+      return 'no account for that email';
+    case 'signup_disabled':
+      return 'new sign-ups are closed on this server';
+    case 'email_address_not_authorized':
+      return "the server can't send email to that address yet";
+    case 'email_provider_disabled':
+      return 'email sign-in is disabled on the server';
+    case 'reauthentication_needed':
+      return 'for security, sign out and use "forgot password?" instead';
+    default:
+      return e.message;
+  }
 }
 
-export async function signUp(email: string, password: string): Promise<string | null> {
-  if (!supabase) return 'sync is not configured in this build';
+export async function signIn(email: string, password: string): Promise<string | null> {
+  if (!supabase) return NOT_CONFIGURED;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  return error ? friendlyAuthError(error) : null; // success flows through onAuthStateChange
+}
+
+export async function signUp(email: string, password: string): Promise<AuthResult> {
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
   const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) return error.message;
+  if (error) return { ok: false, message: friendlyAuthError(error) };
   // with email confirmation disabled a session comes back immediately
-  if (!data.session) return 'check your email to confirm the account, then sign in';
-  return null;
+  if (!data.session) return { ok: true, message: 'check your email to confirm the account, then sign in' };
+  return { ok: true };
+}
+
+// ---- password recovery ----
+// The packaged app runs from a file:// page, so the link in a reset email can
+// never reach it. We use the 6-digit code instead: request → verify → set.
+
+export async function requestPasswordReset(email: string): Promise<AuthResult> {
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  try {
+    // no redirectTo on purpose — we never consume the emailed link
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) return { ok: false, message: friendlyAuthError(error) };
+    // GoTrue answers 200 even for an address with no account (it won't reveal
+    // who has one), so word this so it can't be read as confirmation
+    return { ok: true, message: `if ${email} has an account, a code is on its way` };
+  } catch {
+    return { ok: false, message: UNREACHABLE };
+  }
+}
+
+export async function verifyRecoveryCode(email: string, code: string): Promise<AuthResult> {
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: 'recovery',
+    });
+    if (error) return { ok: false, message: friendlyAuthError(error) };
+    if (!data.session) return { ok: false, message: 'that code did not open a session — try again' };
+    recoveryPending = true;
+    return { ok: true };
+  } catch {
+    return { ok: false, message: UNREACHABLE };
+  }
+}
+
+// serves both the recovery flow and changing the password while signed in
+export async function setNewPassword(password: string): Promise<AuthResult> {
+  if (!supabase) return { ok: false, message: NOT_CONFIGURED };
+  try {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return { ok: false, message: friendlyAuthError(error) };
+    recoveryPending = false;
+    return { ok: true };
+  } catch {
+    return { ok: false, message: UNREACHABLE };
+  }
+}
+
+// Abandoning a reset half-way must not leave a usable session behind. Guarded so
+// the account panel can call it unconditionally when it unmounts.
+export async function cancelRecovery(): Promise<void> {
+  if (!supabase || !recoveryPending) return;
+  recoveryPending = false;
+  await supabase.auth.signOut();
 }
 
 export async function signOut(): Promise<void> {

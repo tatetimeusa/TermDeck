@@ -1834,6 +1834,31 @@ kbd {
   color: var(--red);
   font-size: 12px;
 }
+.account-ok {
+  color: var(--green);
+  font-size: 12px;
+}
+.account-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.account-link:hover {
+  color: var(--cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+/* pairs with .account-input — just the one-time-code look */
+.account-code {
+  letter-spacing: 6px;
+  text-align: center;
+  font-size: 16px;
+}
 .account-dim {
   color: var(--faint);
   font-size: 12px;

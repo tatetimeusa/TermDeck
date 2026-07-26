@@ -90,6 +90,11 @@ export function CommandBar() {
         window.dispatchEvent(new CustomEvent('termdeck:open-account'));
         return;
       }
+      // not /reset — that one resets the focus timer
+      if (c === 'forgot' || c === 'passwd') {
+        window.dispatchEvent(new CustomEvent('termdeck:open-account', { detail: { pw: true } }));
+        return;
+      }
       if (c === 'logout') {
         void signOut();
         return flash('signed out — data stays on this computer');
@@ -100,7 +105,7 @@ export function CommandBar() {
       }
       if (c === 'help')
         return flash(
-          'commands: /todo <text>, /note <title>, /goal <name>, /focus, /start, /pause, /reset, /go <module>, /login, /logout, /sync',
+          'commands: /todo <text>, /note <title>, /goal <name>, /focus, /start, /pause, /reset, /go <module>, /login, /logout, /sync, /forgot',
         );
       if (moduleAliases[c]) return setModule(moduleAliases[c]); // alias + stray text
       return flash(`unknown command: /${c}  ·  try /help`);

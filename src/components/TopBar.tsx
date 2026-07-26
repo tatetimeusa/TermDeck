@@ -14,13 +14,18 @@ const SYNC_LABEL: Record<string, string> = {
 export function TopBar() {
   const [now, setNow] = useState(new Date());
   const [accountOpen, setAccountOpen] = useState(false);
+  const [accountPw, setAccountPw] = useState(false);
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
-    const open = () => setAccountOpen(true);
+    // /passwd carries pw:true so it lands straight on the password form
+    const open = (e: Event) => {
+      setAccountPw(Boolean((e as CustomEvent<{ pw?: boolean }>).detail?.pw));
+      setAccountOpen(true);
+    };
     window.addEventListener('termdeck:open-account', open);
     return () => window.removeEventListener('termdeck:open-account', open);
   }, []);
@@ -56,14 +61,19 @@ export function TopBar() {
         </button>
         <button
           className={`ghost-btn sync-badge sync-${syncStatus}`}
-          onClick={() => setAccountOpen(true)}
+          onClick={() => {
+            setAccountPw(false);
+            setAccountOpen(true);
+          }}
           title="Account & sync"
         >
           {SYNC_LABEL[syncStatus]}
         </button>
         <span className="clock">{fmtClock(now)}</span>
       </div>
-      {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}
+      {accountOpen && (
+        <AccountPanel openPassword={accountPw} onClose={() => setAccountOpen(false)} />
+      )}
     </header>
   );
 }
