@@ -16,6 +16,14 @@ export function StreaksModule() {
 
   return (
     <Panel title="STREAKS" accent="streaks">
+      {goals.length > 0 && (
+        <p className="comp-hint dim">
+          Picture <b>100,000</b> people setting the same goal. Every check-in knocks out the ones who
+          quit that day — the big number is how many are still going, and <b>beat</b> is how many
+          you&rsquo;ve outlasted. It counts your total check-ins, not consecutive days (that&rsquo;s
+          the 🔥 streak).
+        </p>
+      )}
       <ul className="streak-list">
         {goals.length === 0 && (
           <li className="empty">
@@ -62,7 +70,12 @@ export function StreaksModule() {
                 </div>
               </div>
 
-              <div className="streak-counter">
+              <div
+                className="streak-counter"
+                title={`${beaten.toLocaleString()} of ${COMPETITION_TOTAL.toLocaleString()} have quit after ${done} check-in${
+                  done === 1 ? '' : 's'
+                } — ${left.toLocaleString()} still going.`}
+              >
                 <div className="streak-counter-num">{left.toLocaleString()}</div>
                 <div className="streak-counter-sub">
                   left · beat {beaten.toLocaleString()} of {COMPETITION_TOTAL.toLocaleString()}

@@ -86,6 +86,14 @@ export function GoalsModule() {
         </div>
       </form>
 
+      {goals.length > 0 && (
+        <p className="comp-hint dim">
+          <b>… of 100,000 left</b> under each goal is how many of an imaginary 100,000 people who set
+          the same goal are still going after as many check-ins as you&rsquo;ve made. Click it for
+          the full picture in STREAKS [8].
+        </p>
+      )}
+
       <ul className="goal-list">
         {goals.length === 0 && (
           <li className="empty">no goals yet — name one above and pick a timeframe.</li>
@@ -122,7 +130,13 @@ export function GoalsModule() {
                 </span>
                 <span className="goal-stats">
                   {current > 0 && <span className="streak-fire">🔥 {current}</span>}
-                  <button className="goal-link" onClick={() => setModule('streaks')}>
+                  <button
+                    className="goal-link"
+                    onClick={() => setModule('streaks')}
+                    title={`Of an imaginary ${COMPETITION_TOTAL.toLocaleString()} people who set the same goal, ${left.toLocaleString()} are still going after your ${done} check-in${
+                      done === 1 ? '' : 's'
+                    }. Open STREAKS.`}
+                  >
                     {left.toLocaleString()} of {COMPETITION_TOTAL.toLocaleString()} left →
                   </button>
                 </span>

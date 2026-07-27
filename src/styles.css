@@ -1213,6 +1213,18 @@ textarea {
   box-shadow: none;
 }
 
+/* shared "you vs 100,000" explainer — GOALS + STREAKS */
+.comp-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 620px;
+  margin: 0 0 14px;
+}
+.comp-hint b {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* ===== GOALS ===== */
 .goal-add {
   display: flex;
