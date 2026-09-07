@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useStore } from '../store';
-import type { Priority } from '../types';
+import type { Priority, Task } from '../types';
 import { Panel } from '../components/Panel';
 import { fmtDuration, todayISO } from '../util';
 
@@ -12,23 +12,62 @@ export function TodoModule() {
   const addTask = useStore((s) => s.addTask);
   const toggleTask = useStore((s) => s.toggleTask);
   const deleteTask = useStore((s) => s.deleteTask);
+  const updateTask = useStore((s) => s.updateTask);
   const clearCompleted = useStore((s) => s.clearCompleted);
   const setActiveTask = useStore((s) => s.setActiveTask);
   const setModule = useStore((s) => s.setModule);
 
+  const titleRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<Priority>('med');
   const [due, setDue] = useState('');
   const [filter, setFilter] = useState<'active' | 'all' | 'done'>('active');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setTitle('');
+    setDue('');
+    setPriority('med');
+    setEditingId(null);
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (editingId) {
+      const t = title.trim();
+      if (!t) return; // an emptied title is a slip, not a delete — del does that
+      updateTask(editingId, { title: t, priority, due: due || null });
+      resetForm();
+      return;
+    }
     if (addTask(title, { priority, due: due || null })) {
-      setTitle('');
-      setDue('');
-      setPriority('med');
+      resetForm();
     }
   };
+
+  const startEdit = (t: Task) => {
+    setTitle(t.title);
+    setPriority(t.priority);
+    setDue(t.due ?? '');
+    setEditingId(t.id);
+    titleRef.current?.focus();
+  };
+
+  // the task can vanish mid-edit — deleted from a row, or replaced wholesale by a
+  // cloud sync — so drop the edit rather than saving onto a task that's gone
+  useEffect(() => {
+    if (editingId && !tasks.some((t) => t.id === editingId)) resetForm();
+  }, [editingId, tasks]);
+
+  // escape backs out of an edit from anywhere on the page; nothing else binds it
+  useEffect(() => {
+    if (!editingId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') resetForm();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editingId]);
 
   const shown = tasks.filter((t) => (filter === 'all' ? true : filter === 'active' ? !t.done : t.done));
   const doneCount = tasks.filter((t) => t.done).length;
@@ -44,8 +83,9 @@ export function TodoModule() {
       <form className="todo-add" onSubmit={submit}>
         <span className="prompt">&gt;</span>
         <input
+          ref={titleRef}
           className="todo-input"
-          placeholder="add a task…"
+          placeholder={editingId ? 'edit task…' : 'add a task…'}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           autoFocus
@@ -66,8 +106,13 @@ export function TodoModule() {
           title="Due date"
         />
         <button type="submit" className="add-btn">
-          [ ADD ]
+          {editingId ? '[ SAVE ]' : '[ ADD ]'}
         </button>
+        {editingId && (
+          <button type="button" className="add-btn" onClick={resetForm} title="Cancel (Esc)">
+            [ CANCEL ]
+          </button>
+        )}
       </form>
 
       <div className="todo-filters">
@@ -87,7 +132,10 @@ export function TodoModule() {
       <ul className="todo-list">
         {shown.length === 0 && <li className="empty">no tasks here — type above to add one.</li>}
         {shown.map((t) => (
-          <li key={t.id} className={`todo-item${t.done ? ' done' : ''}`}>
+          <li
+            key={t.id}
+            className={`todo-item${t.done ? ' done' : ''}${editingId === t.id ? ' editing' : ''}`}
+          >
             <button className="check" onClick={() => toggleTask(t.id)}>
               {t.done ? '[x]' : '[ ]'}
             </button>
@@ -105,6 +153,9 @@ export function TodoModule() {
                 {t.due}
               </span>
             )}
+            <button className="row-btn" onClick={() => startEdit(t)} title="Edit this task">
+              edit
+            </button>
             <button className="row-btn" onClick={() => focusOn(t.id)} title="Focus on this task">
               focus
             </button>

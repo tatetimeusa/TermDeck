@@ -435,6 +435,11 @@ textarea {
   text-decoration: line-through;
   text-decoration-color: var(--faint);
 }
+.todo-item.editing {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 25%, transparent);
+  opacity: 1; /* stays legible even when the task being edited is done */
+}
 .check {
   background: transparent;
   border: none;
