@@ -40,12 +40,28 @@ function createWindow() {
 // Windows toasts (and don't show up as a generic "electron.app" sender)
 if (process.platform === 'win32') app.setAppUserModelId('com.termdeck.app');
 
-app.whenReady().then(() => {
-  createWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+// Only one TermDeck at a time. Every copy of the app reads the same Local
+// Storage profile, so two instances running together would each write the
+// whole store and the last one to save would win, quietly losing whatever
+// the other had done.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  // someone launched a second copy: surface the window we already have
+  app.on('second-instance', () => {
+    const [win] = BrowserWindow.getAllWindows();
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.focus();
   });
-});
+
+  app.whenReady().then(() => {
+    createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
