@@ -147,7 +147,7 @@ export function FocusModule() {
         </div>
 
         <p className="focus-hint dim">
-          Finish a focus session to bank break time — that unlocks the ARCADE (Snake) in a later phase.
+          Finish a focus session to bank break time, then spend it in the ARCADE.
         </p>
       </div>
     </Panel>
