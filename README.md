@@ -21,8 +21,14 @@ The arcade is the reward. Every focus session you finish banks break time, and b
 |---|---|
 | ![TODO](docs/todo.png) | ![BOARD](docs/board.png) |
 | **TODO**: tasks with priority and due dates | **BOARD**: drag cards between To Do, Doing and Done |
+| ![CALENDAR](docs/calendar.png) | ![NOTES](docs/notes.png) |
+| **CALENDAR**: due dates, reminders and goal check-ins on one month | **NOTES**: plain notes that save as you type |
 | ![FOCUS](docs/focus.png) | ![ARCADE](docs/arcade.png) |
 | **FOCUS**: a Pomodoro timer that logs time to the task | **ARCADE**: Snake, paid for with the break time you earned |
+| ![GOALS](docs/goals.png) | ![STREAKS](docs/streaks.png) |
+| **GOALS**: any date range, with a progress bar per goal | **STREAKS**: daily check-offs, 🔥 counts and the 100,000 rivals |
+| ![REMINDERS](docs/reminders.png) | |
+| **REMINDERS**: one-off or repeating, linkable to a task | |
 
 ## All nine modules
 
@@ -31,14 +37,14 @@ Press `1` to `9` to jump between them, or `/` to open the command bar and type t
 1. **TODO**: add tasks with priority and due dates, edit them, check them off, filter the list.
 2. **BOARD**: kanban columns. Dropping a card on Done completes the task.
 3. **CALENDAR**: a month view that shows dated tasks, goal deadlines and reminders automatically.
-4. **NOTES**: as many notes as you want, saved as you type, and attachable to a task.
+4. **NOTES**: as many notes as you want, each with a title, saved as you type.
 5. **FOCUS**: a Pomodoro timer with work and break lengths you set yourself (1 to 999 minutes).
 6. **ARCADE**: Snake, locked until you have banked break time.
 7. **GOALS**: goals over any date range, with a progress bar that fills as you check in.
 8. **STREAKS**: a daily check-off per goal with a 🔥 counter, plus a "You vs 100,000" tally of imaginary rivals you have outlasted.
 9. **REMINDERS**: one-off or repeating reminders with popups, snooze and real Windows notifications. Anything missed while the app was closed is caught up when it opens.
 
-The rest is feel: a boot intro down a wireframe tunnel, soft click sounds, optional CRT scanlines, and a different glow colour for every module. Each one has its own on/off switch in the top bar.
+The rest is feel: a boot intro down a wireframe tunnel, soft click sounds, optional CRT scanlines, and a different glow colour for every module. The intro, the sounds and the scanlines each have an on/off switch in the top bar.
 
 ## Install
 
