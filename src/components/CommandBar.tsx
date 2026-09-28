@@ -149,7 +149,7 @@ export function CommandBar() {
         <span className="cmd-hint">{hint}</span>
       ) : (
         <span className="cmd-help">
-          <kbd>/</kbd> jump here · <kbd>1-8</kbd> switch module
+          <kbd>/</kbd> jump here · <kbd>1-9</kbd> switch module
         </span>
       )}
     </form>
