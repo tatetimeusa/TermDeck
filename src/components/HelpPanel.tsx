@@ -33,6 +33,14 @@ const KEYS: [string, string][] = [
   ['Arrows / WASD', 'ARCADE: steer'],
 ];
 
+const TOP_BAR: [string, string][] = [
+  ['SND', 'sounds on or off'],
+  ['CRT', 'CRT scanlines on or off'],
+  ['INTRO', 'the boot animation at startup'],
+  ['FX', 'motion and glow; off for a still, flat screen'],
+  ['SYNC', 'account and sync'],
+];
+
 const TYPING: [string, string][] = [
   ['NOTES', 'creates a note with that title'],
   ['FOCUS', 'adds a task and focuses on it'],
@@ -88,6 +96,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <div className="help-body" tabIndex={0}>
           <Section name="COMMANDS" rows={COMMANDS} />
           <Section name="KEYS" rows={KEYS} />
+          <Section name="TOP BAR" rows={TOP_BAR} />
           <Section name="TYPING WITHOUT A /" rows={TYPING} />
         </div>
         <div className="help-foot">press Esc to close</div>

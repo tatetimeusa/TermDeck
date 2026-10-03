@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
-import { PLANT_MAX_LEVEL, PLANT_NAMES, drawPlant } from '../garden';
+import { PLANT_MAX_LEVEL, PLANT_NAMES, drawPlant, gardenGlow, setGardenGlow } from '../garden';
 import type { PlantKind } from '../types';
 
 const H = 240;
@@ -43,7 +43,7 @@ function drawFloor(ctx: CanvasRenderingContext2D, w: number) {
   ctx.fillRect(0, HORIZON, w, H - HORIZON);
 
   ctx.shadowColor = '#3ee5ff';
-  ctx.shadowBlur = 6;
+  ctx.shadowBlur = gardenGlow() ? 6 : 0;
   ctx.lineWidth = 1;
 
   // rows: fade out completely before the horizon
@@ -109,6 +109,7 @@ export function Garden() {
   const pendingGrowth = useStore((s) => s.pendingGrowth);
   const offerPlants = useStore((s) => s.offerPlants);
   const pickPlant = useStore((s) => s.pickPlant);
+  const fxEnabled = useStore((s) => s.fxEnabled);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
@@ -135,6 +136,7 @@ export function Garden() {
     const canvas = canvasRef.current;
     if (!canvas || width === 0) return;
     const ctx = setupCanvas(canvas, width, H);
+    setGardenGlow(fxEnabled);
     drawFloor(ctx, width);
     const cx = width / 2;
     // back to front, so nearer plants overlap the ones behind them
@@ -149,7 +151,7 @@ export function Garden() {
     }
     if (plant) drawPlant(ctx, plant.kind, plant.level, plant.id, cx, FRONT_Y + 6, GROWING_SIZE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plant, finished, width]);
+  }, [plant, finished, width, fxEnabled]);
 
   return (
     <div className="garden">

@@ -72,11 +72,19 @@ function seeded(seed: string) {
 
 type Ctx = CanvasRenderingContext2D;
 
+// FX off draws the same lines without the neon blur. Set by the Garden
+// component before each redraw (this file stays free of store imports).
+let glowOn = true;
+export function setGardenGlow(on: boolean) {
+  glowOn = on;
+}
+export const gardenGlow = () => glowOn;
+
 function glow(ctx: Ctx, color: string, width: number, blur = 8) {
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.shadowColor = color;
-  ctx.shadowBlur = blur;
+  ctx.shadowBlur = glowOn ? blur : 0;
   ctx.lineWidth = width;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';

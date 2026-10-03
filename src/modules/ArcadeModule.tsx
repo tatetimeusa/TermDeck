@@ -16,6 +16,7 @@ export function ArcadeModule() {
   const spendBreak = useStore((s) => s.spendBreak);
   const best = useStore((s) => s.bestSnake);
   const setBest = useStore((s) => s.setBestSnake);
+  const fxEnabled = useStore((s) => s.fxEnabled);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -58,14 +59,16 @@ export function ArcadeModule() {
 
     const f = food.current;
     ctx.fillStyle = '#2dd4ee';
+    // FX off: same board, no neon blur
+    const glow = useStore.getState().fxEnabled ? 1 : 0;
     ctx.shadowColor = '#2dd4ee';
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 12 * glow;
     ctx.fillRect(f.x * CELL + 4, f.y * CELL + 4, CELL - 8, CELL - 8);
 
     snake.current.forEach((s, i) => {
       ctx.fillStyle = i === 0 ? '#d4ff7a' : '#a3e635';
       ctx.shadowColor = '#a3e635';
-      ctx.shadowBlur = i === 0 ? 14 : 6;
+      ctx.shadowBlur = (i === 0 ? 14 : 6) * glow;
       ctx.fillRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2);
     });
     ctx.shadowBlur = 0;
@@ -96,6 +99,12 @@ export function ArcadeModule() {
     draw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // FX toggled while the board is showing: redraw with or without the glow
+  useEffect(() => {
+    draw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fxEnabled]);
 
   // redraw on status transitions (pause overlay, game over, etc.)
   useEffect(() => {

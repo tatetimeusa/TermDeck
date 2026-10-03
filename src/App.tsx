@@ -36,9 +36,14 @@ export default function App() {
   const tick = useStore((s) => s.tick);
   const checkReminders = useStore((s) => s.checkReminders);
   const scanlines = useStore((s) => s.scanlines);
+  const fxEnabled = useStore((s) => s.fxEnabled);
   // play the boot intro on launch (read once at mount so toggling it mid-session
   // never disturbs the running app)
-  const [introActive, setIntroActive] = useState(() => useStore.getState().introEnabled);
+  // (FX off skips it too: the intro is the biggest motion in the app)
+  const [introActive, setIntroActive] = useState(() => {
+    const s = useStore.getState();
+    return s.introEnabled && s.fxEnabled;
+  });
   const [helpOpen, setHelpOpen] = useState(false);
 
   // `/help` in the command bar asks for the help page through this event
@@ -129,7 +134,7 @@ export default function App() {
   }, [setModule]);
 
   return (
-    <div className={`app${scanlines ? ' scanlines' : ''}`}>
+    <div className={`app${scanlines ? ' scanlines' : ''}${fxEnabled ? '' : ' no-fx'}`}>
       {introActive && <Intro onDone={() => setIntroActive(false)} />}
       <TopBar />
       <Sidebar />

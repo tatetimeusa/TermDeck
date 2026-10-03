@@ -37,6 +37,7 @@ function buildBlob(s = useStore.getState()): CloudData {
     scanlines: s.scanlines,
     soundEnabled: s.soundEnabled,
     introEnabled: s.introEnabled,
+    fxEnabled: s.fxEnabled,
   };
 }
 

@@ -39,6 +39,8 @@ export function TopBar() {
   const toggleSound = useStore((s) => s.toggleSound);
   const introEnabled = useStore((s) => s.introEnabled);
   const toggleIntro = useStore((s) => s.toggleIntro);
+  const fxEnabled = useStore((s) => s.fxEnabled);
+  const toggleFx = useStore((s) => s.toggleFx);
   const syncStatus = useStore((s) => s.syncStatus);
 
   return (
@@ -58,6 +60,9 @@ export function TopBar() {
         </button>
         <button className="ghost-btn" onClick={toggleIntro} title="Toggle startup intro">
           {introEnabled ? 'INTRO:ON' : 'INTRO:OFF'}
+        </button>
+        <button className="ghost-btn" onClick={toggleFx} title="Toggle motion and glow">
+          {fxEnabled ? 'FX:ON' : 'FX:OFF'}
         </button>
         <button
           className={`ghost-btn sync-badge sync-${syncStatus}`}

@@ -74,6 +74,9 @@ Focus earns play
   Spend it in the ARCADE (6). Locked until you've earned it.
   Every finished session also grows a plant in your garden.
 
+Easy on the eyes
+  FX:OFF in the top bar stops the motion and the glow.
+
 Sync
   /login  sign in to keep your deck in sync across computers.
           Without it, everything stays on this computer.
@@ -162,6 +165,7 @@ export interface CloudData {
   scanlines: boolean;
   soundEnabled: boolean;
   introEnabled: boolean;
+  fxEnabled?: boolean; // optional: decks saved before FX existed keep this machine's value
   // optional: decks saved before the garden existed don't have these
   plant?: Plant | null;
   finishedPlants?: Plant[];
@@ -199,6 +203,7 @@ interface Store {
   scanlines: boolean;
   soundEnabled: boolean;
   introEnabled: boolean;
+  fxEnabled: boolean; // off = no movement and no glow
 
   // account + sync — authEmail/syncStatus are transient; lastSyncedAt persists
   // per machine (the server updated_at of the last blob this machine saw)
@@ -214,6 +219,7 @@ interface Store {
   toggleScanlines: () => void;
   toggleSound: () => void;
   toggleIntro: () => void;
+  toggleFx: () => void;
 
   // tasks
   addTask: (title: string, opts?: { priority?: Priority; due?: string | null }) => string | null;
@@ -293,6 +299,11 @@ export const useStore = create<Store>()(
       scanlines: false,
       soundEnabled: true,
       introEnabled: true,
+      // a fresh install follows the computer's "reduce animations" setting
+      fxEnabled: !(
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      ),
 
       authEmail: null,
       syncStatus: 'off',
@@ -317,6 +328,7 @@ export const useStore = create<Store>()(
       toggleScanlines: () => set((s) => ({ scanlines: !s.scanlines })),
       toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
       toggleIntro: () => set((s) => ({ introEnabled: !s.introEnabled })),
+      toggleFx: () => set((s) => ({ fxEnabled: !s.fxEnabled })),
 
       addTask: (title, opts) => {
         const t = title.trim();
@@ -654,6 +666,7 @@ export const useStore = create<Store>()(
         scanlines: s.scanlines,
         soundEnabled: s.soundEnabled,
         introEnabled: s.introEnabled,
+        fxEnabled: s.fxEnabled,
         lastSyncedAt: s.lastSyncedAt,
       }),
       // pre-0.3.0 blobs have no version (zustand treats them as 0) — same shape, pass through

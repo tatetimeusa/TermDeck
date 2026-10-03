@@ -2113,3 +2113,24 @@ kbd {
   font-size: 11px;
   text-align: right;
 }
+
+/* ===== FX:OFF — no movement, no glow ===== */
+/* Colours and layout stay. Shadows that mark a state rather than glow (the
+   focused task box, the selected note and calendar day) are put back below. */
+.app.no-fx *,
+.app.no-fx *::before,
+.app.no-fx *::after {
+  animation: none !important;
+  transition: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+.app.no-fx .todo-input:focus {
+  box-shadow: 0 0 0 1px var(--accent) !important;
+}
+.app.no-fx .note-item.on {
+  box-shadow: inset 2px 0 0 var(--accent) !important;
+}
+.app.no-fx .cal-cell.selected {
+  box-shadow: inset 0 0 0 1px var(--accent) !important;
+}
