@@ -72,3 +72,23 @@ export type ModuleId =
   | 'reminders';
 
 export type FocusMode = 'work' | 'break';
+
+export type PlantKind =
+  | 'fern'
+  | 'cactus'
+  | 'bonsai'
+  | 'sunflower'
+  | 'tulip'
+  | 'palm'
+  | 'vine'
+  | 'cherry';
+
+// the focus garden: one plant grows a level per finished work session; at full
+// size it moves to the grid for good and the user picks the next one
+export interface Plant {
+  id: string; // also seeds the drawing, so a plant keeps its exact shape forever
+  kind: PlantKind;
+  level: number; // 0 (seed) .. PLANT_MAX_LEVEL (full grown)
+  startedAt: number;
+  finishedAt: number | null;
+}

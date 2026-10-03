@@ -740,6 +740,100 @@ textarea {
   font-size: 12px;
 }
 
+/* ===== GARDEN (under FOCUS) ===== */
+.garden {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.garden-stage {
+  position: relative;
+  width: 100%;
+}
+/* soften the left and right edges; the top fades out in the drawing itself */
+.garden-canvas {
+  display: block;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+.garden-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 12px;
+}
+.garden-name {
+  color: var(--text);
+  letter-spacing: 2px;
+}
+.garden-level {
+  color: var(--dim);
+}
+.garden-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.garden-pips i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.garden-pips i.on {
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+.garden-hint {
+  max-width: 600px;
+  font-size: 12px;
+  margin: 0;
+}
+.garden-picker {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: radial-gradient(ellipse at center, rgba(11, 17, 28, 0.94) 35%, rgba(11, 17, 28, 0.55) 75%, transparent);
+}
+.garden-picker-title {
+  color: var(--cyan);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.garden-choices {
+  display: flex;
+  gap: 8px;
+}
+.garden-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px 6px;
+  color: var(--dim);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.garden-choice:hover {
+  border-color: var(--cyan);
+  color: var(--text);
+  box-shadow: 0 0 14px -4px var(--cyan);
+}
+
 /* ===== SOON ===== */
 .soon {
   flex: 1;

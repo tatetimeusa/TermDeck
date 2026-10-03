@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { Panel } from '../components/Panel';
+import { Garden } from '../components/Garden';
 import { fmtDuration, fmtTimer } from '../util';
 
 const MIN_MINUTES = 1;
@@ -149,6 +150,8 @@ export function FocusModule() {
         <p className="focus-hint dim">
           Finish a focus session to bank break time, then spend it in the ARCADE.
         </p>
+
+        <Garden />
       </div>
     </Panel>
   );

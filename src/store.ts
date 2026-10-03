@@ -11,10 +11,13 @@ import type {
   Priority,
   FocusMode,
   Column,
+  Plant,
+  PlantKind,
 } from './types';
 import { playReminder, playSessionEnd, primeAudio } from './sound';
 import { advanceToFuture, effectiveAt } from './reminders';
 import { ensureNotifyPermission, notifyReminder } from './notify';
+import { PLANT_MAX_LEVEL, drawPlantChoices } from './garden';
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
@@ -34,6 +37,36 @@ function creditActiveTask(s: Store, now: number): Partial<Store> | null {
     ),
     lastLogAt: s.lastLogAt + gained * 1000,
   };
+}
+
+// Grow the garden by `levels` finished sessions. Sessions that finish while no
+// plant is growing (the picker is open) are held and given to the next plant.
+// A plant that reaches full size moves to the grid and five new choices are
+// drawn.
+function growGarden(s: Store, levels: number): Partial<Store> {
+  if (!s.plant) {
+    return {
+      pendingGrowth: s.pendingGrowth + levels,
+      plantChoices: s.plantChoices.length ? s.plantChoices : drawPlantChoices(),
+    };
+  }
+  const level = s.plant.level + levels;
+  if (level < PLANT_MAX_LEVEL) return { plant: { ...s.plant, level } };
+  const done: Plant = { ...s.plant, level: PLANT_MAX_LEVEL, finishedAt: Date.now() };
+  return {
+    plant: null,
+    finishedPlants: [...s.finishedPlants, done],
+    pendingGrowth: s.pendingGrowth + (level - PLANT_MAX_LEVEL),
+    plantChoices: drawPlantChoices(),
+  };
+}
+
+// Quitting a work session early (RESET or SKIP once it has started) costs the
+// growing plant one level. It never dies: a seed stays a seed.
+function quitPenalty(s: Store): Partial<Store> {
+  const started = s.running || s.secondsLeft < s.settings.workMin * 60;
+  if (s.focusMode !== 'work' || !started || !s.plant || s.plant.level <= 0) return {};
+  return { plant: { ...s.plant, level: s.plant.level - 1 } };
 }
 
 export interface FocusSettings {
@@ -57,6 +90,11 @@ export interface CloudData {
   scanlines: boolean;
   soundEnabled: boolean;
   introEnabled: boolean;
+  // optional: decks saved before the garden existed don't have these
+  plant?: Plant | null;
+  finishedPlants?: Plant[];
+  plantChoices?: PlantKind[];
+  pendingGrowth?: number;
 }
 
 interface Store {
@@ -78,6 +116,12 @@ interface Store {
   bankedBreakSeconds: number;
   bestSnake: number;
   settings: FocusSettings;
+
+  // focus garden
+  plant: Plant | null; // the one growing now; null while the picker is open
+  finishedPlants: Plant[]; // full grown, kept on the grid for good
+  plantChoices: PlantKind[]; // the five on offer when picking; empty otherwise
+  pendingGrowth: number; // sessions finished while no plant was growing
 
   // ui prefs
   scanlines: boolean;
@@ -139,6 +183,10 @@ interface Store {
   setSettings: (patch: Partial<FocusSettings>) => void;
   tick: () => void;
 
+  // garden
+  offerPlants: () => void;
+  pickPlant: (kind: PlantKind) => void;
+
   // arcade
   spendBreak: (seconds: number) => void;
   setBestSnake: (n: number) => void;
@@ -164,6 +212,11 @@ export const useStore = create<Store>()(
       bankedBreakSeconds: 0,
       bestSnake: 0,
       settings: { workMin: 25, breakMin: 5 },
+
+      plant: null,
+      finishedPlants: [],
+      plantChoices: [],
+      pendingGrowth: 0,
 
       scanlines: false,
       soundEnabled: true,
@@ -408,6 +461,7 @@ export const useStore = create<Store>()(
 
       resetTimer: () =>
         set((s) => ({
+          ...quitPenalty(s),
           running: false,
           endsAt: null,
           lastLogAt: null,
@@ -418,6 +472,7 @@ export const useStore = create<Store>()(
         const s = get();
         if (s.focusMode === 'work') {
           set({
+            ...quitPenalty(s),
             focusMode: 'break',
             running: false,
             endsAt: null,
@@ -464,6 +519,7 @@ export const useStore = create<Store>()(
         if (s.focusMode === 'work') {
           set({
             ...credit,
+            ...growGarden(s, 1),
             completedSessions: s.completedSessions + 1,
             bankedBreakSeconds: s.bankedBreakSeconds + s.settings.breakMin * 60,
             focusMode: 'break',
@@ -487,6 +543,22 @@ export const useStore = create<Store>()(
         set((s) => ({ bankedBreakSeconds: Math.max(0, s.bankedBreakSeconds - seconds) })),
 
       setBestSnake: (n) => set({ bestSnake: n }),
+
+      offerPlants: () =>
+        set((s) => (s.plant || s.plantChoices.length ? {} : { plantChoices: drawPlantChoices() })),
+
+      pickPlant: (kind) =>
+        set((s) => {
+          if (s.plant || !s.plantChoices.includes(kind)) return {};
+          const plant: Plant = { id: uid(), kind, level: 0, startedAt: Date.now(), finishedAt: null };
+          const picked = { ...s, plant, plantChoices: [], pendingGrowth: 0 };
+          return {
+            plant,
+            plantChoices: [],
+            pendingGrowth: 0,
+            ...(s.pendingGrowth > 0 ? growGarden(picked, s.pendingGrowth) : {}),
+          };
+        }),
     }),
     {
       name: 'termdeck-v1',
@@ -503,6 +575,10 @@ export const useStore = create<Store>()(
         bankedBreakSeconds: s.bankedBreakSeconds,
         bestSnake: s.bestSnake,
         settings: s.settings,
+        plant: s.plant,
+        finishedPlants: s.finishedPlants,
+        plantChoices: s.plantChoices,
+        pendingGrowth: s.pendingGrowth,
         scanlines: s.scanlines,
         soundEnabled: s.soundEnabled,
         introEnabled: s.introEnabled,
