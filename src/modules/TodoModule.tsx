@@ -23,6 +23,9 @@ export function TodoModule() {
   const [due, setDue] = useState('');
   const [filter, setFilter] = useState<'active' | 'all' | 'done'>('active');
   const [editingId, setEditingId] = useState<string | null>(null);
+  // after a tick the row may vanish (the active tab hides done tasks); keep the
+  // cursor on that row if it's still there, else move it to the next one
+  const [afterTick, setAfterTick] = useState<{ id: string; next: string | null } | null>(null);
 
   const resetForm = () => {
     setTitle('');
@@ -70,6 +73,21 @@ export function TodoModule() {
   }, [editingId]);
 
   const shown = tasks.filter((t) => (filter === 'all' ? true : filter === 'active' ? !t.done : t.done));
+
+  const tick = (id: string) => {
+    const i = shown.findIndex((t) => t.id === id);
+    const next = shown[i + 1]?.id ?? shown[i - 1]?.id ?? null;
+    toggleTask(id);
+    setAfterTick({ id, next });
+  };
+
+  useEffect(() => {
+    if (!afterTick) return;
+    const find = (id: string | null) =>
+      id ? document.querySelector<HTMLButtonElement>(`[data-task="${id}"] .check`) : null;
+    (find(afterTick.id) ?? find(afterTick.next) ?? titleRef.current)?.focus();
+    setAfterTick(null);
+  }, [afterTick, tasks]);
   const doneCount = tasks.filter((t) => t.done).length;
   const today = todayISO();
 
@@ -141,9 +159,10 @@ export function TodoModule() {
         {shown.map((t) => (
           <li
             key={t.id}
+            data-task={t.id}
             className={`todo-item${t.done ? ' done' : ''}${editingId === t.id ? ' editing' : ''}`}
           >
-            <button className="check" onClick={() => toggleTask(t.id)}>
+            <button className="check" onClick={() => tick(t.id)}>
               {t.done ? '[x]' : '[ ]'}
             </button>
             <span className={`dot p-${t.priority}`} title={`priority: ${t.priority}`} />

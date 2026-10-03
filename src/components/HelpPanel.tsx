@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useFocusTrap } from '../focusTrap';
 
 // `/help` and `?` open this. Every line below is checked against the real
 // handlers (CommandBar.tsx, App.tsx and the modules), so keep it in step when a
@@ -24,7 +25,10 @@ const KEYS: [string, string][] = [
   ['1-9', 'switch module (when not typing in a box)'],
   ['/', 'jump to the command bar'],
   ['?', 'open this page'],
-  ['Esc', 'close a popup, or cancel a task edit in TODO'],
+  ['Esc', 'leave a text box, close a popup, or cancel a task edit in TODO'],
+  ['Tab / Shift+Tab', 'move between buttons and boxes; Enter or Space presses'],
+  ['Arrows', 'CALENDAR: move the selected day (up/down is a week)'],
+  ['◂ ▸ on a card', 'BOARD: move it to the next column (Tab to them)'],
   ['Space', 'ARCADE: start or pause Snake'],
   ['Arrows / WASD', 'ARCADE: steer'],
 ];
@@ -52,6 +56,9 @@ function Section({ name, rows }: { name: string; rows: [string, string][] }) {
 }
 
 export function HelpPanel({ onClose }: { onClose: () => void }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef);
+
   // While open, the page owns the keyboard: Esc or ? closes it, and nothing
   // else leaks through to the app behind (a stray 3 or Space would otherwise
   // switch modules or start Snake under the popup). Capture phase so it runs
@@ -70,14 +77,15 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="account-layer" onClick={onClose}>
-      <div className="account-card help-card" onClick={(e) => e.stopPropagation()}>
+      <div className="account-card help-card" ref={cardRef} onClick={(e) => e.stopPropagation()}>
         <div className="account-head">
           <span className="account-title">TERMDECK(1) · HELP</span>
           <button className="reminder-btn" onClick={onClose} title="Close (Esc)">
             ✕
           </button>
         </div>
-        <div className="help-body">
+        {/* focusable so arrow keys can scroll it on a short window */}
+        <div className="help-body" tabIndex={0}>
           <Section name="COMMANDS" rows={COMMANDS} />
           <Section name="KEYS" rows={KEYS} />
           <Section name="TYPING WITHOUT A /" rows={TYPING} />

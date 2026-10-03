@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import { useStore } from '../store';
 import type { Column } from '../types';
@@ -23,6 +23,26 @@ export function BoardModule() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<Column | null>(null);
   const [newCard, setNewCard] = useState('');
+  // after a keyboard move the card re-mounts in its new column; put the cursor
+  // back on the same arrow so pressing again keeps it moving
+  const [refocus, setRefocus] = useState<{ id: string; dir: 'left' | 'right' } | null>(null);
+
+  useEffect(() => {
+    if (!refocus) return;
+    const card = document.querySelector(`[data-card="${refocus.id}"]`);
+    const btn =
+      card?.querySelector<HTMLButtonElement>(`.card-move.${refocus.dir}:not(:disabled)`) ??
+      card?.querySelector<HTMLButtonElement>('.card-move:not(:disabled)');
+    btn?.focus();
+    setRefocus(null);
+  }, [refocus, tasks]);
+
+  const step = (id: string, from: Column, dir: 'left' | 'right') => {
+    const i = columns.findIndex((c) => c.id === from) + (dir === 'left' ? -1 : 1);
+    if (i < 0 || i >= columns.length) return;
+    moveTask(id, columns[i].id);
+    setRefocus({ id, dir });
+  };
 
   const today = todayISO();
 
@@ -79,6 +99,7 @@ export function BoardModule() {
                 {colTasks.map((t) => (
                   <div
                     key={t.id}
+                    data-card={t.id}
                     className={`card${t.done ? ' done' : ''}${dragId === t.id ? ' dragging' : ''}`}
                     draggable
                     onDragStart={(e: DragEvent) => {
@@ -109,6 +130,24 @@ export function BoardModule() {
                         <span className="badge focus-badge">◐ {fmtDuration(t.focusSeconds)}</span>
                       )}
                       <span className="card-actions">
+                        <button
+                          className="card-btn card-move left"
+                          onClick={() => step(t.id, col.id, 'left')}
+                          disabled={col.id === 'todo'}
+                          title="Move to the column on the left"
+                          aria-label="move left"
+                        >
+                          ◂
+                        </button>
+                        <button
+                          className="card-btn card-move right"
+                          onClick={() => step(t.id, col.id, 'right')}
+                          disabled={col.id === 'done'}
+                          title="Move to the column on the right"
+                          aria-label="move right"
+                        >
+                          ▸
+                        </button>
                         <button className="card-btn" onClick={() => focusOn(t.id)} title="Focus on this task">
                           focus
                         </button>

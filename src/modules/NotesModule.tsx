@@ -19,6 +19,13 @@ export function NotesModule() {
     }
   }, [notes, selected]);
 
+  // a note made from the command bar opens in the editor
+  useEffect(() => {
+    const open = (e: Event) => setSelected((e as CustomEvent<{ id: string }>).detail.id);
+    window.addEventListener('termdeck:open-note', open);
+    return () => window.removeEventListener('termdeck:open-note', open);
+  }, []);
+
   const note = notes.find((n) => n.id === selected) ?? null;
 
   const create = () => setSelected(addNote('untitled'));
@@ -45,6 +52,15 @@ export function NotesModule() {
               key={n.id}
               className={`note-item${selected === n.id ? ' on' : ''}`}
               onClick={() => setSelected(n.id)}
+              tabIndex={0}
+              role="button"
+              aria-pressed={selected === n.id}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelected(n.id);
+                }
+              }}
             >
               <div className="note-item-title">{n.title || 'untitled'}</div>
               <div className="note-item-sub">{n.body.split('\n')[0]?.slice(0, 38) || '—'}</div>

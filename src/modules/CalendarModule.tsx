@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useStore } from '../store';
 import { Panel } from '../components/Panel';
-import { MONTHS, WEEKDAYS, isoFromDate, prettyDate, todayISO } from '../util';
+import { MONTHS, WEEKDAYS, addDays, isoFromDate, prettyDate, todayISO } from '../util';
 import { effectiveAt, fmtClockTime } from '../reminders';
 
 export function CalendarModule() {
@@ -20,6 +20,29 @@ export function CalendarModule() {
   const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const [selected, setSelected] = useState<string>(today);
   const [title, setTitle] = useState('');
+
+  // arrow keys move the selected day (a week for up/down) when not typing,
+  // and the month view follows it across month boundaries
+  useEffect(() => {
+    const deltas: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+    const onKey = (e: KeyboardEvent) => {
+      const delta = deltas[e.key];
+      if (delta == null || e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) {
+        return;
+      }
+      e.preventDefault();
+      setSelected((cur) => {
+        const next = addDays(cur, delta);
+        const [y, m] = next.split('-').map(Number);
+        setView({ y, m: m - 1 });
+        return next;
+      });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const startWeekday = new Date(view.y, view.m, 1).getDay();
   const start = new Date(view.y, view.m, 1 - startWeekday);

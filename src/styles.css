@@ -968,8 +968,16 @@ textarea {
   opacity: 0;
   transition: opacity 0.12s;
 }
-.card:hover .card-actions {
+.card:hover .card-actions,
+.card:focus-within .card-actions {
   opacity: 1;
+}
+.card-btn:disabled,
+.card-btn:disabled:hover {
+  opacity: 0.3;
+  cursor: default;
+  color: var(--dim);
+  border-color: var(--border);
 }
 .card-btn {
   background: transparent;

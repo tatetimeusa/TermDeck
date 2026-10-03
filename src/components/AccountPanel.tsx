@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../focusTrap';
 import type { FormEvent } from 'react';
 import { useStore } from '../store';
 import {
@@ -45,6 +46,8 @@ export function AccountPanel({
   const syncStatus = useStore((s) => s.syncStatus);
   const lastSyncedAt = useStore((s) => s.lastSyncedAt);
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState<Msg | null>(null);
@@ -184,7 +187,7 @@ export function AccountPanel({
 
   return (
     <div className="account-layer" onClick={onClose}>
-      <div className="account-card" onClick={(e) => e.stopPropagation()}>
+      <div className="account-card" ref={cardRef} onClick={(e) => e.stopPropagation()}>
         <div className="account-head">
           <span className="account-title">ACCOUNT / SYNC</span>
           <button className="reminder-btn" onClick={onClose} title="Close (Esc)">

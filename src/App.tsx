@@ -102,6 +102,11 @@ export default function App() {
       const typing =
         !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 
+      // Esc gets you out of any text box, so 1-9 and / work again
+      if (e.key === 'Escape' && typing) {
+        el.blur();
+        return;
+      }
       if (e.key === '/' && !typing) {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent('termdeck:focus-command'));

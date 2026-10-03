@@ -44,6 +44,11 @@ export function CommandBar() {
     return () => window.removeEventListener('termdeck:focus-command', focus);
   }, []);
 
+  // NOTES keeps its own selection, so tell it which note was just made; if NOTES
+  // isn't open yet it mounts on the newest note anyway
+  const openNote = (id: string) =>
+    window.dispatchEvent(new CustomEvent('termdeck:open-note', { detail: { id } }));
+
   const flash = (msg: string) => {
     setHint(msg);
     if (hintTimer.current != null) window.clearTimeout(hintTimer.current);
@@ -71,7 +76,7 @@ export function CommandBar() {
         return flash(`task added: ${arg}`);
       }
       if (c === 'note' && arg) {
-        addNote(arg);
+        openNote(addNote(arg));
         return setModule('notes');
       }
       if (c === 'goal') {
@@ -116,7 +121,7 @@ export function CommandBar() {
 
     // plain text → context-aware action
     if (activeModule === 'notes') {
-      addNote(raw);
+      openNote(addNote(raw));
       return flash('note created');
     }
     if (activeModule === 'focus') {
