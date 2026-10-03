@@ -1,7 +1,7 @@
 {
   "name": "termdeck",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A retro-terminal command center for tasks, kanban, calendar, focus timer and a Snake arcade.",
   "author": "TermDeck",
   "type": "module",
