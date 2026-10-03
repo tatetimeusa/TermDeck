@@ -201,7 +201,10 @@ export function RemindersModule() {
 
       <ul className="rem-list">
         {upcoming.length === 0 && (
-          <li className="empty">no reminders set — add one above and it'll pop up on time.</li>
+          <li className="empty">
+            <span className="quip">&gt; nothing to remind you of. yet.</span>
+            add one above and it&apos;ll pop up on time.
+          </li>
         )}
         {upcoming.map((r) => (
           <li key={r.id} className="rem-item">

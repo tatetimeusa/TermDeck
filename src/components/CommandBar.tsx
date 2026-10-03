@@ -18,6 +18,8 @@ const moduleAliases: Record<string, ModuleId> = {
   goals: 'goals',
   streaks: 'streaks',
   streak: 'streaks',
+  reminders: 'reminders',
+  remind: 'reminders',
 };
 
 export function CommandBar() {
@@ -103,10 +105,11 @@ export function CommandBar() {
         forceSync();
         return flash('syncing…');
       }
-      if (c === 'help')
-        return flash(
-          'commands: /todo <text>, /note <title>, /goal <name>, /focus, /start, /pause, /reset, /go <module>, /login, /logout, /sync, /forgot',
-        );
+      if (c === 'help') {
+        ref.current?.blur(); // so the help page's keys (Esc, ?) aren't eaten by the input
+        window.dispatchEvent(new CustomEvent('termdeck:open-help'));
+        return;
+      }
       if (moduleAliases[c]) return setModule(moduleAliases[c]); // alias + stray text
       return flash(`unknown command: /${c}  ·  try /help`);
     }

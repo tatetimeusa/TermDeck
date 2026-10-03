@@ -495,6 +495,13 @@ textarea {
   padding: 14px 4px;
   list-style: none;
 }
+/* the one-liner with attitude on an empty screen; the how-to line follows it */
+.quip {
+  display: block;
+  color: var(--dim);
+  font-style: normal;
+  margin-bottom: 4px;
+}
 .empty.big {
   display: flex;
   align-items: center;
@@ -2049,4 +2056,52 @@ kbd {
   50% {
     opacity: 0.35;
   }
+}
+
+/* ===== help page (/help, ?) — a man page in the account popup's frame ===== */
+.help-card {
+  width: min(640px, calc(100vw - 40px));
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+}
+.help-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 12.5px;
+}
+.help-h {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.help-rows {
+  margin: 0;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.help-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+}
+.help-row dt {
+  color: var(--cyan);
+  white-space: nowrap;
+}
+.help-row dd {
+  margin: 0;
+  color: var(--dim);
+}
+.help-foot {
+  margin-top: 12px;
+  color: var(--faint);
+  font-size: 11px;
+  text-align: right;
 }

@@ -199,7 +199,10 @@ export function ArcadeModule() {
           {locked && status === 'idle' && (
             <div className="arcade-overlay">
               <div className="ov-title">🔒 LOCKED</div>
-              <div className="ov-sub">Finish a focus session in FOCUS to earn break time, then come play.</div>
+              <div className="ov-sub">
+                <span className="quip">&gt; arcade locked. earn it.</span>
+                Finish a focus session in FOCUS to earn break time, then come play.
+              </div>
             </div>
           )}
           {!locked && status === 'idle' && (

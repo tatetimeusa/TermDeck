@@ -130,7 +130,14 @@ export function TodoModule() {
       </div>
 
       <ul className="todo-list">
-        {shown.length === 0 && <li className="empty">no tasks here — type above to add one.</li>}
+        {shown.length === 0 && (
+          <li className="empty">
+            <span className="quip">
+              {filter === 'done' ? '> nothing finished yet. the day is young.' : '> no tasks. suspicious.'}
+            </span>
+            type above to add one.
+          </li>
+        )}
         {shown.map((t) => (
           <li
             key={t.id}

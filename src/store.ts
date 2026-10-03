@@ -18,8 +18,80 @@ import { playReminder, playSessionEnd, primeAudio } from './sound';
 import { advanceToFuture, effectiveAt } from './reminders';
 import { ensureNotifyPermission, notifyReminder } from './notify';
 import { PLANT_MAX_LEVEL, drawPlantChoices } from './garden';
+import { addDays, todayISO } from './util';
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+
+// First-run samples. These are only the initial state: a machine with a saved
+// deck loads over them, and a first sign-in on a fresh machine lets the cloud
+// deck win (see reconcile in sync.ts), so they never overwrite real data.
+// The same task showing up in TODO, BOARD and CALENDAR teaches the
+// connected-system idea before the user has typed anything.
+function sampleTasks(): Task[] {
+  const now = Date.now();
+  const today = todayISO();
+  const base = { done: false, completedAt: null, focusSeconds: 0 };
+  return [
+    {
+      ...base,
+      id: uid(),
+      title: 'welcome to termdeck. this task is also on BOARD (2) and CALENDAR (3)',
+      priority: 'high',
+      due: today,
+      createdAt: now,
+      column: 'todo',
+    },
+    {
+      ...base,
+      id: uid(),
+      title: 'finish a focus session in FOCUS (5) to unlock the ARCADE',
+      priority: 'med',
+      due: addDays(today, 1),
+      createdAt: now - 1,
+      column: 'doing',
+    },
+    {
+      ...base,
+      id: uid(),
+      title: 'tick this off or delete it. these are just samples',
+      priority: 'low',
+      due: null,
+      createdAt: now - 2,
+      column: 'todo',
+    },
+  ];
+}
+
+const WELCOME_BODY = `Everything in here is one connected system. A task you add shows up in TODO, on the BOARD and, if it has a due date, on the CALENDAR.
+
+Getting around
+  1-9     switch modules (the numbers are in the sidebar)
+  /       jump to the command bar
+  /help   list every command
+
+Focus earns play
+  Finish a focus session in FOCUS (5) and you bank break time.
+  Spend it in the ARCADE (6). Locked until you've earned it.
+  Every finished session also grows a plant in your garden.
+
+Sync
+  /login  sign in to keep your deck in sync across computers.
+          Without it, everything stays on this computer.
+
+Delete this note and the sample tasks whenever you're ready.`;
+
+function sampleNotes(): Note[] {
+  const now = Date.now();
+  return [
+    {
+      id: uid(),
+      title: 'Welcome to TermDeck. Delete me.',
+      body: WELCOME_BODY,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
 
 // Credit the active task with the real seconds elapsed since the last accrual.
 // Returns a state patch, or null if nothing to credit. Never logs time past the
@@ -195,8 +267,8 @@ interface Store {
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
-      tasks: [],
-      notes: [],
+      tasks: sampleTasks(),
+      notes: sampleNotes(),
       goals: [],
       reminders: [],
       firing: [],

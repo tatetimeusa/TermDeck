@@ -35,7 +35,11 @@ export function NotesModule() {
     >
       <div className="notes-layout">
         <ul className="notes-list">
-          {notes.length === 0 && <li className="empty">no notes yet.</li>}
+          {notes.length === 0 && (
+            <li className="empty">
+              <span className="quip">&gt; no notes. a clean mind, or a forgetful one.</span>
+            </li>
+          )}
           {notes.map((n) => (
             <li
               key={n.id}

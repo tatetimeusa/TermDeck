@@ -161,7 +161,11 @@ export function CalendarModule() {
             </ul>
           )}
           <ul className="cal-detail-list">
-            {selTasks.length === 0 && <li className="empty">nothing due this day.</li>}
+            {selTasks.length === 0 && (
+              <li className="empty">
+                <span className="quip">&gt; nothing due. enjoy it while it lasts.</span>
+              </li>
+            )}
             {selTasks.map((t) => (
               <li key={t.id} className={`cal-detail-item${t.done ? ' done' : ''}`}>
                 <button className="check" onClick={() => toggleTask(t.id)}>

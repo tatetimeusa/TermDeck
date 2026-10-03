@@ -15,6 +15,7 @@ import { GoalsModule } from './modules/GoalsModule';
 import { StreaksModule } from './modules/StreaksModule';
 import { RemindersModule } from './modules/RemindersModule';
 import { ReminderPopup } from './components/ReminderPopup';
+import { HelpPanel } from './components/HelpPanel';
 import type { ModuleId } from './types';
 
 const moduleKeys: Record<string, ModuleId> = {
@@ -38,6 +39,14 @@ export default function App() {
   // play the boot intro on launch (read once at mount so toggling it mid-session
   // never disturbs the running app)
   const [introActive, setIntroActive] = useState(() => useStore.getState().introEnabled);
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  // `/help` in the command bar asks for the help page through this event
+  useEffect(() => {
+    const open = () => setHelpOpen(true);
+    window.addEventListener('termdeck:open-help', open);
+    return () => window.removeEventListener('termdeck:open-help', open);
+  }, []);
 
   // 1-second heartbeat that drives the focus timer and the reminder checks
   useEffect(() => {
@@ -98,7 +107,15 @@ export default function App() {
         window.dispatchEvent(new CustomEvent('termdeck:focus-command'));
         return;
       }
+      if (e.key === '?' && !typing) {
+        e.preventDefault();
+        setHelpOpen(true);
+        return;
+      }
       if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && moduleKeys[e.key]) {
+        // TODO, GOALS and REMINDERS focus their input on open; without this the
+        // digit that switched modules would land in that box
+        e.preventDefault();
         setModule(moduleKeys[e.key]);
       }
     };
@@ -124,6 +141,7 @@ export default function App() {
       </main>
       <CommandBar />
       <ReminderPopup />
+      {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }

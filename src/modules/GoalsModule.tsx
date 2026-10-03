@@ -96,7 +96,10 @@ export function GoalsModule() {
 
       <ul className="goal-list">
         {goals.length === 0 && (
-          <li className="empty">no goals yet — name one above and pick a timeframe.</li>
+          <li className="empty">
+            <span className="quip">&gt; no goals. bold strategy.</span>
+            name one above and pick a timeframe.
+          </li>
         )}
         {goals.map((g) => {
           const total = daysInclusive(g.startDate, g.endDate);

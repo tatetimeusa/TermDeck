@@ -27,7 +27,7 @@ export function StreaksModule() {
       <ul className="streak-list">
         {goals.length === 0 && (
           <li className="empty">
-            no goals to track yet —{' '}
+            <span className="quip">&gt; no streaks without goals.</span>
             <button className="goal-link" onClick={() => setModule('goals')}>
               create one in GOALS [7] →
             </button>
